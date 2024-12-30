@@ -21,8 +21,21 @@ jobs:
     - name: Authenticate to GitHub Packages
       run: dotnet nuget add source "https://nuget.pkg.github.com/AnnabiGihed/index.json" --name "github" --username "AnnabiGihed" --password ${{ secrets.TEMPLATES_SECRET }} --store-password-in-clear-text
 
-    - name: Build and publish package
+    - name: Build and pack all projects
       run: |
-        dotnet pack -c Release
-        dotnet nuget push bin/Release/*.nupkg \
-          --source github
+        # Find all .csproj files, build, and pack each
+        for csproj in $(find . -name "*.csproj"); do
+          echo "Processing project: $csproj"
+          dotnet build "$csproj" -c Release
+          dotnet pack "$csproj" -c Release
+        done
+
+    - name: Publish all NuGet packages
+      run: |
+        # Find all .nupkg files in the workspace and push to GitHub
+        for nupkg in $(find . -name "*.nupkg"); do
+          echo "Publishing package: $nupkg"
+          dotnet nuget push "$nupkg" \
+            --source github \
+            --api-key ${{ secrets.GITHUB_PAT }}
+        done

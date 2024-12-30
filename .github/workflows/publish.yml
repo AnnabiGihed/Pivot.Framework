@@ -19,7 +19,7 @@ jobs:
         dotnet-version: '8.x' # Update as needed (e.g., '7.x' or 'latest')
 
     - name: Authenticate to GitHub Packages
-      run: dotnet nuget add source "https://nuget.pkg.github.com/AnnabiGihed/index.json" --name "github" --username "AnnabiGihed" --password ${{ secrets.TEMPLATES_SECRET }}
+      run: dotnet nuget add source "https://nuget.pkg.github.com/AnnabiGihed/index.json" --name "github" --username "AnnabiGihed" --password ${{ secrets.TEMPLATES_SECRET }} --store-password-in-clear-text
 
     - name: Build and publish package
       run: |

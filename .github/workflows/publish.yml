@@ -35,11 +35,7 @@ jobs:
         done
 
     - name: Authenticate to GitHub Packages
-      run: dotnet nuget add source "https://nuget.pkg.github.com/AnnabiGihed/index.json" \
-          --name "github" \
-          --username "AnnabiGihed" \
-          --password ${{ secrets.TEMPLATES_SECRET }} \
-          --store-password-in-clear-text
+      run: dotnet nuget add source "https://nuget.pkg.github.com/AnnabiGihed/index.json" --name "github" --username "AnnabiGihed" --password ${{ secrets.TEMPLATES_SECRET }} --store-password-in-clear-text
 
     - name: Build and pack all projects
       run: |

@@ -48,12 +48,14 @@ public class BaseAsyncCommandRepository<TEntity, TId> : IAsyncCommandRepository<
 		return entity;
 	}
 
-	public async Task UpdateAsync(TEntity entity)
+	public async Task<bool> UpdateAsync(TEntity entity)
 	{
 		await Task.Run(() =>
 		{
 			_dbContext.Entry(entity).State = EntityState.Modified;
 		});
+
+		return true;
 	}
 
 	public async Task DeleteAsync(TEntity entity)

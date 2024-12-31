@@ -49,12 +49,14 @@ public class BaseAsyncQueryRepository<TProjection, TId> : IAsyncQueryRepository<
 		return entity;
 	}
 
-	public async Task UpdateAsync(TProjection entity)
+	public async Task<bool> UpdateAsync(TProjection entity)
 	{
 		await Task.Run(() =>
 		{
 			_dbContext.Entry(entity).State = EntityState.Modified;
 		});
+
+		return true;
 	}
 
 	public async Task DeleteAsync(TProjection entity)

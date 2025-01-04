@@ -1,5 +1,8 @@
-﻿namespace Templates.Core.Domain.Shared;
+﻿using System.Text.Json.Serialization;
 
+namespace Templates.Core.Domain.Shared;
+
+[JsonConverter(typeof(ResultJsonConverter<>))]
 public class Result<TValue> : Result
 {
 	private readonly TValue? _value;

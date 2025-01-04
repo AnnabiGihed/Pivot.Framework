@@ -2,14 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Templates.Core.Domain.Shared;
-using Templates.Core.Tools.API.Conventions;
 using Templates.Core.Application.Exceptions;
-
 
 namespace Templates.Core.Tools.API.Abstractions;
 
 [ApiController]
-[ApiConventionType(typeof(ApiConventions))]
 public abstract class ApiController : ControllerBase
 {
 	protected readonly ISender Sender;

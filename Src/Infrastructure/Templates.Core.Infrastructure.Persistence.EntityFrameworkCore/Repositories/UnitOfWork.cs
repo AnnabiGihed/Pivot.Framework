@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
+using Templates.Core.Domain.Shared;
 using Microsoft.EntityFrameworkCore;
 using Templates.Core.Domain.Primitives;
 using Templates.Core.Domain.Repositories;
@@ -11,10 +12,14 @@ namespace Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Reposito
 
 public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 {
+	#region Properties
 	protected readonly bool _enableOutbox;
 	protected readonly bool _enableAuditing;
 	protected readonly DbContext _dbContext;
 	protected readonly IHttpContextAccessor _httpContextAccessor;
+	#endregion
+
+	#region Constructors
 	public UnitOfWork(DbContext dbContext, IHttpContextAccessor httpContextAccessor, bool enableOutbox = false, bool enableAuditing = false)
 	{
 		_dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
@@ -22,8 +27,10 @@ public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 		_enableOutbox = enableOutbox;
 		_enableAuditing = enableAuditing;
 	}
+	#endregion
 
-	public virtual async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+	#region IUnitOfWork Implementation
+	public virtual async Task<Result> SaveChangesAsync(CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -31,18 +38,70 @@ public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 			if (_enableAuditing) UpdateAuditableEntities();
 
 			await _dbContext.SaveChangesAsync(cancellationToken);
+			return Result.Success();
+		}
+		catch (DbUpdateConcurrencyException concurrencyEx)
+		{
+			LogException(concurrencyEx);
+			return Result.Failure(new Error("DbUpdateConcurrencyError", "A concurrency conflict occurred while saving changes."));
+		}
+		catch (DbUpdateException dbEx)
+		{
+			LogException(dbEx);
+			var errorMessage = $": {dbEx.Message}";
+			return Result.Failure(new Error("DatabaseError", "A database update error occurred"));
 		}
 		catch (Exception ex)
 		{
-			StringBuilder sb = new StringBuilder();
-			sb.AppendLine(ex.Message);
-			if (ex.InnerException != null)
-			{
-				sb.AppendLine(ex.InnerException.Message);
-			}
-			Debug.WriteLine(sb.ToString());
+			LogException(ex);
+			return Result.Failure(new Error("UnexpectedError", "An unexpected error occurred."));
 		}
+	}
+	#endregion
 
+	#region Utilities
+	/// <summary>
+	/// This methods will set the audit props on add and update of every table in dbcontext
+	/// IAuditableEntities should be instantiated in the constructor of the objects
+	/// CurrentUser is from Httpcontext and if it comes from a domain event or null set it to the default "System".
+	/// </summary>
+	protected void UpdateAuditableEntities()
+	{
+		foreach (var entityEntry in _dbContext.ChangeTracker.Entries<IAuditableEntity>())
+		{
+			if (entityEntry.Entity != null)
+			{
+				string currentUser = _httpContextAccessor.HttpContext?.User.Identity.Name ?? "System";
+				bool isAuthenticated = _httpContextAccessor.HttpContext?.User.Identity.IsAuthenticated ?? false;
+
+				if (entityEntry.State == EntityState.Added)
+				{
+					var currentTime = DateTime.UtcNow;
+					entityEntry.Entity.Audit.CreatedOnUtc = currentTime;
+					entityEntry.Entity.Audit.CreatedBy = isAuthenticated ? currentUser : "System";
+					entityEntry.Entity.Audit.ModifiedOnUtc = currentTime;
+					entityEntry.Entity.Audit.ModifiedBy = isAuthenticated ? currentUser : "System";
+				}
+				else if (entityEntry.State == EntityState.Modified)
+				{
+					entityEntry.Entity.Audit.Modify(DateTime.UtcNow, isAuthenticated ? currentUser : "System");
+				}
+			}
+		}
+	}
+
+	/// <summary>
+	/// Logs exception details.
+	/// </summary>
+	protected void LogException(Exception ex)
+	{
+		StringBuilder sb = new StringBuilder();
+		sb.AppendLine(ex.Message);
+		if (ex.InnerException != null)
+		{
+			sb.AppendLine(ex.InnerException.Message);
+		}
+		Debug.WriteLine(sb.ToString());
 	}
 
 	/// <summary>
@@ -79,34 +138,5 @@ public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 
 		_dbContext.Set<OutboxMessage>().AddRange(outboxMessages);
 	}
-
-	/// <summary>
-	/// This methods will set the audit props on add and update of every table in dbcontext
-	/// IAuditableEntities should be instantiated in the constructor of the objects
-	/// CurrentUser is from Httpcontext and if it comes from a domain event or null set it to the default "System".
-	/// </summary>
-	protected void UpdateAuditableEntities()
-	{
-		foreach (var entityEntry in _dbContext.ChangeTracker.Entries<IAuditableEntity>())
-		{
-			if (entityEntry.Entity != null)
-			{
-				string currentUser = _httpContextAccessor.HttpContext?.User.Identity.Name ?? "System";
-				bool isAuthenticated = _httpContextAccessor.HttpContext?.User.Identity.IsAuthenticated ?? false;
-
-				if (entityEntry.State == EntityState.Added)
-				{
-					var currentTime = DateTime.UtcNow;
-					entityEntry.Entity.Audit.CreatedOnUtc = currentTime;
-					entityEntry.Entity.Audit.CreatedBy = isAuthenticated ? currentUser : "System";
-					entityEntry.Entity.Audit.ModifiedOnUtc = currentTime;
-					entityEntry.Entity.Audit.ModifiedBy = isAuthenticated ? currentUser : "System";
-				}
-				else if (entityEntry.State == EntityState.Modified)
-				{
-					entityEntry.Entity.Audit.Modify(DateTime.UtcNow, isAuthenticated ? currentUser : "System");
-				}
-			}
-		}
-	}
+	#endregion
 }

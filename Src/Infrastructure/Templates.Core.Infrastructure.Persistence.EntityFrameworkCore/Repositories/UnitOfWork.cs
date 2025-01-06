@@ -11,10 +11,10 @@ namespace Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Reposito
 
 public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 {
-	private readonly DbContext _dbContext;
-	private readonly bool _enableOutbox;
-	private readonly bool _enableAuditing;
-	private readonly IHttpContextAccessor _httpContextAccessor;
+	protected readonly bool _enableOutbox;
+	protected readonly bool _enableAuditing;
+	protected readonly DbContext _dbContext;
+	protected readonly IHttpContextAccessor _httpContextAccessor;
 	public UnitOfWork(DbContext dbContext, IHttpContextAccessor httpContextAccessor, bool enableOutbox = false, bool enableAuditing = false)
 	{
 		_dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));

@@ -38,6 +38,8 @@ public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 		{
 			UpdateAuditableEntities();
 
+			await SaveDomainEventsAsync(cancellationToken);
+
 			var result = await _dbContext.SaveChangesAsync(cancellationToken);
 
 			if(result > 0)			
@@ -65,6 +67,27 @@ public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 	#endregion
 
 	#region Utilities
+	private async Task SaveDomainEventsAsync(CancellationToken cancellationToken)
+	{
+		// Get all aggregate roots with domain events
+		var aggregatesWithEvents = _dbContext.ChangeTracker
+			.Entries<IAggregateRoot>()
+			.Where(e => e.Entity.GetDomainEvents().Any())
+			.Select(e => e.Entity)
+			.ToList();
+
+		foreach (var aggregate in aggregatesWithEvents)
+		{
+			// Save each domain event to the outbox
+			foreach (var domainEvent in aggregate.GetDomainEvents())
+			{
+				await _domainEventPublisher.PublishAsync(domainEvent, cancellationToken);
+			}
+
+			// Clear domain events from the aggregate
+			aggregate.ClearDomainEvents();
+		}
+	}
 	/// <summary>
 	/// This methods will set the audit props on add and update of every table in dbcontext
 	/// IAuditableEntities should be instantiated in the constructor of the objects

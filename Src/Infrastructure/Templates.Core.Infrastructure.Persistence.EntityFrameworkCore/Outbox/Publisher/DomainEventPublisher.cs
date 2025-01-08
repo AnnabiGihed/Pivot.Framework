@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Diagnostics;
 using Templates.Core.Domain.Primitives;
 using Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Repositories;
 
@@ -20,6 +21,7 @@ public class DomainEventPublisher : IDomainEventPublisher
 			ReferenceLoopHandling = ReferenceLoopHandling.Ignore
 		});
 
+		Debug.WriteLine($"Publishing domain event: {domainEvent.GetType().FullName}");
 		var outboxMessage = new OutboxMessage
 		{
 			Id = domainEvent.Id,

@@ -140,6 +140,11 @@ public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 		{
 			// Deserialize the payload back into its original domain event type
 			var domainEventType = Type.GetType(message.EventType);
+			Debug.WriteLine($"Domain Event Type: {domainEventType}");
+			Debug.WriteLine($"Payload: {message.Payload}");
+			Debug.WriteLine($"Message Id: {message.Id}");
+			Debug.WriteLine($"Message Processed: {message.Processed}");
+
 			if (domainEventType == null)
 			{
 				// Handle error: Event type not found

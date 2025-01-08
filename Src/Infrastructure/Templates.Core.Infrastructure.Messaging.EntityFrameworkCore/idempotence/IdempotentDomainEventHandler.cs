@@ -6,8 +6,7 @@ using Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Outbox;
 
 namespace Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.idempotence;
 
-public sealed class IdempotentDomainEventHandler<TDomainEvent> : IDomainEventHandler<TDomainEvent>
-where TDomainEvent : IDomainEvent
+public sealed class IdempotentDomainEventHandler<TDomainEvent> : IDomainEventHandler<TDomainEvent> where TDomainEvent : IDomainEvent
 {
 	private readonly INotificationHandler<TDomainEvent> _decorated;
 	private readonly DbContext _dbContext;

@@ -6,26 +6,28 @@ using Templates.Core.Domain.Shared;
 using Microsoft.EntityFrameworkCore;
 using Templates.Core.Domain.Primitives;
 using Templates.Core.Domain.Repositories;
-using Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Outbox;
+using Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Publisher;
+using Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Repositories;
+
 
 namespace Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
 
 public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 {
 	#region Properties
-	protected readonly bool _enableOutbox;
-	protected readonly bool _enableAuditing;
 	protected readonly DbContext _dbContext;
+	protected readonly IOutboxRepository _outboxRepository;
 	protected readonly IHttpContextAccessor _httpContextAccessor;
+	protected readonly IDomainEventPublisher _domainEventPublisher;
 	#endregion
 
 	#region Constructors
-	public UnitOfWork(DbContext dbContext, IHttpContextAccessor httpContextAccessor, bool enableOutbox = false, bool enableAuditing = false)
+	public UnitOfWork(DbContext dbContext, IHttpContextAccessor httpContextAccessor, IDomainEventPublisher domainEventPublisher, IOutboxRepository outboxRepository)
 	{
 		_dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+		_outboxRepository = outboxRepository ?? throw new ArgumentNullException(nameof(outboxRepository));
 		_httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
-		_enableOutbox = enableOutbox;
-		_enableAuditing = enableAuditing;
+		_domainEventPublisher = domainEventPublisher ?? throw new ArgumentNullException(nameof(domainEventPublisher));
 	}
 	#endregion
 
@@ -34,10 +36,13 @@ public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 	{
 		try
 		{
-			if (_enableOutbox) ConvertDomainEventsToOutboxMessages();
-			if (_enableAuditing) UpdateAuditableEntities();
+			UpdateAuditableEntities();
 
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			var result = await _dbContext.SaveChangesAsync(cancellationToken);
+
+			if(result > 0)			
+				await PublishOutboxMessagesAsync(cancellationToken);
+
 			return Result.Success();
 		}
 		catch (DbUpdateConcurrencyException concurrencyEx)
@@ -104,39 +109,35 @@ public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 		Debug.WriteLine(sb.ToString());
 	}
 
-	/// <summary>
-	/// This methods converts all raison (added) domain events of 
-	/// an Aggregate to OutboxMessages and stores them to the
-	/// OutboxMessage table in dbContext of the application.
-	/// </summary>
-	protected void ConvertDomainEventsToOutboxMessages()
+	protected async Task PublishOutboxMessagesAsync(CancellationToken cancellationToken)
 	{
-		var outboxMessages = _dbContext.ChangeTracker
-			.Entries<IAggregateRoot>()
-			.Select(x => x.Entity)
-			.SelectMany(aggregateRoot =>
+		var messages = await _outboxRepository.GetUnprocessedMessagesAsync(cancellationToken);
+
+		foreach (var message in messages)
+		{
+			// Deserialize the payload back into its original domain event type
+			var domainEventType = Type.GetType(message.EventType);
+			if (domainEventType == null)
 			{
-				var domainEvents = aggregateRoot.GetDomainEvents();
+				// Handle error: Event type not found
+				throw new InvalidOperationException($"Event type '{message.EventType}' could not be found.");
+			}
 
-				aggregateRoot.ClearDomainEvents();
-
-				return domainEvents;
-			})
-			.Select(domainEvent => new OutboxMessage
+			var domainEvent = JsonConvert.DeserializeObject(message.Payload, domainEventType) as IDomainEvent;
+			if (domainEvent == null)
 			{
-				Id = Guid.NewGuid(),
-				OccurredOnUtc = DateTime.UtcNow,
-				Type = domainEvent.GetType().Name,
-				Content = JsonConvert.SerializeObject(
-					domainEvent,
-					new JsonSerializerSettings
-					{
-						TypeNameHandling = TypeNameHandling.All
-					})
-			})
-			.ToList();
+				// Handle error: Deserialization failed
+				throw new InvalidOperationException($"Failed to deserialize payload for event type '{message.EventType}'.");
+			}
 
-		_dbContext.Set<OutboxMessage>().AddRange(outboxMessages);
+			// Pass the deserialized domain event to the DomainEventPublisher
+			await _domainEventPublisher.PublishAsync(domainEvent, cancellationToken);
+
+			// Mark the outbox message as processed
+			await _outboxRepository.MarkAsProcessedAsync(message.Id, cancellationToken);
+		}
 	}
+
+
 	#endregion
 }

@@ -3,14 +3,10 @@
 public sealed class OutboxMessage
 {
 	public Guid Id { get; set; }
-
-	public string Type { get; set; } = string.Empty;
-
-	public string Content { get; set; } = string.Empty;
-
-	public DateTime OccurredOnUtc { get; set; }
-
-	public DateTime? ProcessedOnUtc { get; set; }
-
-	public string? Error { get; set; }
+	public DateTime CreatedAtUtc { get; set; }
+	public string EventType { get; set; }
+	public string Payload { get; set; }
+	public bool Processed { get; set; } = false;
+	public DateTime? ProcessedAtUtc { get; set; }
+	public int RetryCount { get; set; } = 0; // Retry mechanism
 }

@@ -56,12 +56,12 @@ public class RabbitMQReceiver(IOptions<RabbitMQSettings> options, ILogger<Rabbit
 			try
 			{
 				var encryptedMessage = ea.Body.ToArray();
-				//var compressedMessage = _messageEncryptor.Decrypt(encryptedMessage);
-				//var messageBytes = _messageCompressor.Decompress(compressedMessage);
+				var compressedMessage = _messageEncryptor.Decrypt(encryptedMessage);
+				var messageBytes = _messageCompressor.Decompress(compressedMessage);
 
-				var messagePayload = Encoding.UTF8.GetString(encryptedMessage);
-
-				_logger.LogInformation($"Message received: {messagePayload}");
+				var messagePayload = Encoding.UTF8.GetString(messageBytes);
+				var innerJson = JsonConvert.DeserializeObject<string>(messagePayload);
+				_logger.LogInformation($"Message received: {innerJson}");
 
 				// Deserialize the payload into the appropriate domain event
 				var domainEventType = Type.GetType(ea.BasicProperties.Type);
@@ -72,7 +72,7 @@ public class RabbitMQReceiver(IOptions<RabbitMQSettings> options, ILogger<Rabbit
 					return;
 				}
 
-				var domainEvent = JsonConvert.DeserializeObject(messagePayload, domainEventType) as INotification;
+				var domainEvent = JsonConvert.DeserializeObject(innerJson, domainEventType) as INotification;
 				if (domainEvent == null)
 				{
 					_logger.LogWarning($"Failed to deserialize message to event type: {ea.BasicProperties.Type}");

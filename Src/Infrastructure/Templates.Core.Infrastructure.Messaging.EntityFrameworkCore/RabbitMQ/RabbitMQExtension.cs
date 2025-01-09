@@ -46,7 +46,7 @@ public static class RabbitMQPublisherExtensions
 			return new OutboxRepository(dbContext);
 		});
 
-		services.AddHostedService<OutboxPublisherService>();
+		//services.AddHostedService<OutboxPublisherService>();
 
 		return services;
 	}

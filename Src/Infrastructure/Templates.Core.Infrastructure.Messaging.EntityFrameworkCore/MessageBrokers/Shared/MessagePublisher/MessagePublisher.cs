@@ -9,6 +9,7 @@ using Templates.Core.Infrastructure.Abstraction.MessageBrokers.Shared.MessagePub
 using Templates.Core.Infrastructure.Abstraction.MessageBrokers.Shared.MessageEncryptor;
 using Templates.Core.Infrastructure.Abstraction.MessageBrokers.Shared.MessageCompressor;
 using Templates.Core.Infrastructure.Abstraction.MessageBrokers.Shared.MessageSerializer;
+using System.Diagnostics;
 
 namespace Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.Shared.MessagePublisher;
 
@@ -49,6 +50,7 @@ public class RabbitMQPublisher(IOptions<RabbitMQSettings> options, IMessageSeria
 					using var connection = await CreateConnectionAsync();
 					using var channel = await connection.CreateChannelAsync();
 
+					Debug.WriteLine($"Domain event type: {message}");
 					var serializedMessage = _serializer.Serialize(message);
 					var compressedMessage = _compressor.Compress(serializedMessage);
 					var encryptedMessage = _encryptor.Encrypt(compressedMessage);

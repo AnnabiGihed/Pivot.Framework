@@ -34,6 +34,9 @@ public class OutboxRepository<TContext> : IOutboxRepository<TContext> where TCon
 			message.Processed = true;
 			message.ProcessedAtUtc = DateTime.UtcNow;
 			_dbContext.Update(message);
+
+			// Save the changes to the database
+			await _dbContext.SaveChangesAsync(cancellationToken);
 		}
 	}
 }

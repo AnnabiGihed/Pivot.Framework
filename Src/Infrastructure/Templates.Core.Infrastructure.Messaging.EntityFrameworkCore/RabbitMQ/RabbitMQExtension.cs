@@ -15,7 +15,7 @@ using Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.RabbitMQ.Messa
 namespace Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.RabbitMQ;
 public static class RabbitMQPublisherExtensions
 {
-	public static IServiceCollection AddRabbitMQPublisher(this IServiceCollection services, IConfiguration configuration, DbContext dbContext)
+	public static IServiceCollection AddRabbitMQPublisher(this IServiceCollection services, IConfiguration configuration)
 	{
 		services.Configure<RabbitMQSettings>(options => configuration.GetSection("RabbitMQ").Bind(options));
 
@@ -41,10 +41,10 @@ public static class RabbitMQPublisherExtensions
 		services.AddSingleton<IMessagePublisher, RabbitMQPublisher>();
 		services.AddSingleton<IMessageReceiver, RabbitMQReceiver>();
 
-		services.AddScoped<IOutboxRepository, OutboxRepository>(sp =>
-		{
-			return new OutboxRepository(dbContext);
-		});
+		//services.AddScoped<IOutboxRepository, OutboxRepository>(sp =>
+		//{
+		//	return new OutboxRepository(dbContext);
+		//});
 
 		//services.AddHostedService<OutboxPublisherService>();
 

@@ -2,7 +2,7 @@
 
 namespace Templates.Core.Infrastructure.Abstraction.Outbox.DomainEventPublisher;
 
-public interface IDomainEventPublisher
+public interface IDomainEventPublisher<TId>
 {
 	Task PublishAsync(IDomainEvent domainEvent, CancellationToken cancellationToken);
 }

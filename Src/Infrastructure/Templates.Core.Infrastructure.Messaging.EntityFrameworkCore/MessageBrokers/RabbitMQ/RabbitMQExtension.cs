@@ -18,6 +18,8 @@ using Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers
 using Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.Shared.MessageCompressor;
 using Templates.Core.Domain.Repositories;
 using Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.UnitOfWork;
+using Templates.Core.Infrastructure.Abstraction.Outbox.DomainEventPublisher;
+using Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Publisher;
 
 namespace Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.RabbitMQ;
 public static class RabbitMQPublisherExtensions
@@ -49,10 +51,14 @@ public static class RabbitMQPublisherExtensions
 		services.AddSingleton<IMessageCompressor, GZipMessageCompressor>();
 		services.AddSingleton<IMessagePublisher, RabbitMQPublisher>();
 		services.AddSingleton<IMessageReceiver, RabbitMQReceiver>();
+
 		services.AddHostedService<RabbitMQReceiverHostedService>();
 		#endregion
 
+		#region outbox
 		services.AddScoped(typeof(IOutboxRepository<>), typeof(OutboxRepository<>));
+		services.AddScoped(typeof(IDomainEventPublisher<>), typeof(DomainEventPublisher<>));
+		#endregion
 		services.AddScoped(typeof(IUnitOfWork<>), typeof(UnitOfWork<>));
 		return services;
 	}

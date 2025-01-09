@@ -8,7 +8,7 @@ using Templates.Core.Infrastructure.Abstraction.Outbox.DomainEventPublisher;
 
 namespace Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Publisher;
 
-public class DomainEventPublisher<TContext> : IDomainEventPublisher where TContext : DbContext
+public class DomainEventPublisher<TContext> : IDomainEventPublisher<TContext> where TContext : DbContext
 {
 	protected readonly IOutboxRepository<TContext> _outboxRepository;
 

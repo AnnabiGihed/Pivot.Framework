@@ -61,7 +61,8 @@ public class RabbitMQPublisher(IOptions<RabbitMQSettings> options, IMessageSeria
 						{
 							{ "CorrelationId", Guid.NewGuid().ToString() },
 							{ "Timestamp", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }
-						}
+						},
+						Type = typeof(T).AssemblyQualifiedName // Set the fully qualified type name
 					};
 
 					await channel.BasicPublishAsync(

@@ -10,6 +10,7 @@ using Templates.Core.Infrastructure.Abstraction.MessageBrokers.Shared.MessageEnc
 using Templates.Core.Infrastructure.Abstraction.MessageBrokers.Shared.MessageCompressor;
 using Templates.Core.Infrastructure.Abstraction.MessageBrokers.Shared.MessageSerializer;
 using System.Diagnostics;
+using System.Text;
 
 namespace Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.Shared.MessagePublisher;
 
@@ -50,8 +51,10 @@ public class RabbitMQPublisher(IOptions<RabbitMQSettings> options, IMessageSeria
 					using var connection = await CreateConnectionAsync();
 					using var channel = await connection.CreateChannelAsync();
 
-					var serializedMessage = _serializer.Serialize(message);
-					var compressedMessage = _compressor.Compress(serializedMessage);
+					//var serializedMessage = _serializer.Serialize(message);
+
+					var serializedMessage = message as string ?? throw new InvalidOperationException("Message must be a serialized string.");
+					var compressedMessage = _compressor.Compress(Encoding.UTF8.GetBytes(serializedMessage));
 					var encryptedMessage = _encryptor.Encrypt(compressedMessage);
 
 					var properties = new BasicProperties

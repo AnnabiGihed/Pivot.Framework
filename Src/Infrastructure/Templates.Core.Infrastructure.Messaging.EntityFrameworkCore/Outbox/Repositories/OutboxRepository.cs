@@ -4,7 +4,8 @@ using Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Repos
 
 namespace Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.Outbox.Repositories;
 
-public class OutboxRepository<TContext> : IOutboxRepository where TContext : DbContext
+public class OutboxRepository<TContext> : IOutboxRepository<TContext> where TContext : DbContext
+
 {
 	private readonly TContext _dbContext;
 

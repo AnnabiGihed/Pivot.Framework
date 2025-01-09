@@ -3,5 +3,5 @@
 public interface IMessageReceiver : IDisposable
 {
 	Task InitializeAsync();
-	Task StartListeningAsync(Func<string, Task> onMessageReceived);
+	Task StartListeningAsync();
 }

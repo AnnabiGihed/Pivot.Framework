@@ -1,6 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 using Templates.Core.Domain.Primitives;
 using Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Repositories;
 
@@ -8,7 +8,7 @@ namespace Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Outbox.P
 
 public class DomainEventPublisher<TContext> : IDomainEventPublisher where TContext : DbContext
 {
-	private readonly IOutboxRepository<TContext> _outboxRepository;
+	protected readonly IOutboxRepository<TContext> _outboxRepository;
 
 	public DomainEventPublisher(IOutboxRepository<TContext> outboxRepository)
 	{

@@ -12,20 +12,20 @@ namespace Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.RabbitMQ.M
 
 public class RabbitMQReceiver : IMessageReceiver
 {
-	protected IChannel? _channel;
-	protected IConnection? _connection;
-	protected readonly RabbitMQSettings _settings;
-	protected readonly ILogger<RabbitMQReceiver> _logger;
-	protected readonly IMessageEncryptor _messageEncryptor;
-	protected readonly IMessageCompressor _messageCompressor;
-	protected readonly IMediator _mediator; // Inject Mediator
+	private IChannel? _channel;
+	private IConnection? _connection;
+	private readonly RabbitMQSettings _settings;
+	private readonly ILogger<RabbitMQReceiver> _logger;
+	private readonly IMessageEncryptor _messageEncryptor;
+	private readonly IMessageCompressor _messageCompressor;
+	private readonly IMediator _mediator;
 
 	public RabbitMQReceiver(
 		IOptions<RabbitMQSettings> options,
 		ILogger<RabbitMQReceiver> logger,
 		IMessageCompressor messageCompressor,
 		IMessageEncryptor messageEncryptor,
-		IMediator mediator) // Mediator for handling domain events
+		IMediator mediator)
 	{
 		_settings = options.Value ?? throw new ArgumentNullException(nameof(options));
 		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -52,7 +52,7 @@ public class RabbitMQReceiver : IMessageReceiver
 		await EnsureQueueExistsAsync();
 	}
 
-	public async Task StartListeningAsync(Func<string, Task> onMessageReceived = null)
+	public async Task StartListeningAsync()
 	{
 		if (_connection == null || _channel == null)
 		{

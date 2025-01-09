@@ -10,6 +10,7 @@ using Temlates.Core.Infrastructure.Messaging.EntityFrameworkCore.RabbitMQ.Messag
 using Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.RabbitMQ.MessageEncryptor;
 using Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.RabbitMQ.MessagePublisher;
 using Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.RabbitMQ.MessageSerializer;
+using Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.RabbitMQ.Services;
 
 
 namespace Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.RabbitMQ;
@@ -42,6 +43,8 @@ public static class RabbitMQPublisherExtensions
 		services.AddSingleton<IMessageReceiver, RabbitMQReceiver>();
 
 		services.AddScoped(typeof(IOutboxRepository<>), typeof(OutboxRepository<>));
+
+		services.AddHostedService<RabbitMQReceiverHostedService>();
 
 		return services;
 	}

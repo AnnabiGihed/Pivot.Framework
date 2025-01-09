@@ -16,20 +16,29 @@ public class DomainEventPublisher : IDomainEventPublisher
 
 	public async Task PublishAsync(IDomainEvent domainEvent, CancellationToken cancellationToken)
 	{
-		var serializedObject = JsonConvert.SerializeObject(domainEvent, new JsonSerializerSettings
+		try
 		{
-			ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-		});
+			ArgumentNullException.ThrowIfNull(domainEvent);
 
-		Debug.WriteLine($"Publishing domain event: {domainEvent.GetType().FullName}");
-		var outboxMessage = new OutboxMessage
+			var serializedObject = JsonConvert.SerializeObject(domainEvent, new JsonSerializerSettings
+			{
+				ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+			});
+
+			Debug.WriteLine($"Publishing domain event: {domainEvent.GetType().FullName}");
+			var outboxMessage = new OutboxMessage
+			{
+				Id = domainEvent.Id,
+				EventType = domainEvent?.GetType()?.AssemblyQualifiedName,
+				Payload = serializedObject,
+				CreatedAtUtc = domainEvent.OccurredOnUtc
+			};
+
+			await _outboxRepository.AddAsync(outboxMessage, cancellationToken);
+		}
+		catch (Exception ex)
 		{
-			Id = domainEvent.Id,
-			EventType = domainEvent.GetType().FullName,
-			Payload = serializedObject,
-			CreatedAtUtc = domainEvent.OccurredOnUtc
-		};
-
-		await _outboxRepository.AddAsync(outboxMessage, cancellationToken);
+			Debug.WriteLine($"Error while publishing domain event: {ex.Message}");
+		}
 	}
 }

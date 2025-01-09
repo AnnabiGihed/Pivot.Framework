@@ -12,11 +12,10 @@ using Templates.Core.Infrastructure.Abstraction.MessageBrokers.Shared.MessagePub
 
 namespace Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.UnitOfWork;
 
-public abstract class UnitOfWork<TContext>(DbContext dbContext, IHttpContextAccessor httpContextAccessor, IMessagePublisher messagePublisher, IOutboxRepository<TContext> outboxRepository, ILogger<UnitOfWork<TContext>> logger, IDomainEventPublisher domainEventPublisher) : IUnitOfWork<TContext> where TContext : DbContext
+public abstract class UnitOfWork<TContext>(DbContext dbContext, IHttpContextAccessor httpContextAccessor, IMessagePublisher messagePublisher, IOutboxRepository<TContext> outboxRepository,IDomainEventPublisher domainEventPublisher) : IUnitOfWork<TContext> where TContext : DbContext
 {
 	#region Properties
 	protected readonly DbContext _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-	protected readonly ILogger<UnitOfWork<TContext>> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 	protected readonly IMessagePublisher _messagePublisher = messagePublisher ?? throw new ArgumentNullException(nameof(messagePublisher));
 	protected readonly IOutboxRepository<TContext> _outboxRepository = outboxRepository ?? throw new ArgumentNullException(nameof(outboxRepository));
 	protected readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));

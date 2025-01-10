@@ -1,4 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
+using Microsoft.VisualBasic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
@@ -36,13 +37,7 @@ public class AuditInfo : ValueObject<AuditInfo>
 		if (string.IsNullOrEmpty(author))
 			throw new ArgumentNullException(nameof(author));
 
-		return new AuditInfo
-		{
-			CreatedOnUtc = date,
-			ModifiedOnUtc = date,
-			CreatedBy = author,
-			ModifiedBy = author
-		};
+		return new AuditInfo(author, author, date, date);
 	}
 
 	public void Modify(DateTime date, string author)

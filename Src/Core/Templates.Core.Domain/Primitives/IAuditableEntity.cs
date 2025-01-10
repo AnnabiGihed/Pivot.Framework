@@ -1,5 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Templates.Core.Domain.Primitives;
 
@@ -17,6 +18,15 @@ public class AuditInfo : ValueObject<AuditInfo>
 	public DateTime CreatedOnUtc { get; set; }
 	public DateTime? ModifiedOnUtc { get; set; } = default!;
 
+	// Add a public constructor for deserialization
+	[JsonConstructor]
+	public AuditInfo(string createdBy, string modifiedBy, DateTime createdOnUtc, DateTime modifiedOnUtc)
+	{
+		CreatedBy = createdBy;
+		ModifiedBy = modifiedBy;
+		CreatedOnUtc = createdOnUtc;
+		ModifiedOnUtc = modifiedOnUtc;
+	}
 	public static AuditInfo Create(DateTime date, string author)
 	{
 

@@ -1,26 +1,28 @@
 ﻿using Newtonsoft.Json;
-using System.Diagnostics;
+using Templates.Core.Domain.Shared;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Templates.Core.Domain.Primitives;
 using Templates.Core.Infrastructure.Abstraction.Outbox.Models;
 using Templates.Core.Infrastructure.Abstraction.Outbox.Repositories;
 using Templates.Core.Infrastructure.Abstraction.Outbox.DomainEventPublisher;
-using Microsoft.Extensions.Logging;
+
 
 namespace Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Publisher;
 
 public class DomainEventPublisher<TContext> : IDomainEventPublisher where TContext : DbContext
 {
-	protected readonly ILogger<DomainEventPublisher<TContext>> _logger;
+	#region Properties
 	protected readonly IOutboxRepository<TContext> _outboxRepository;
-
+	protected readonly ILogger<DomainEventPublisher<TContext>> _logger;
+	#endregion
 	public DomainEventPublisher(IOutboxRepository<TContext> outboxRepository, ILogger<DomainEventPublisher<TContext>> logger)
 	{
 		_outboxRepository = outboxRepository;
 		_logger = logger;
 	}
 
-	public async Task PublishAsync(IDomainEvent domainEvent, CancellationToken cancellationToken)
+	public async Task<Result> PublishAsync(IDomainEvent domainEvent, CancellationToken cancellationToken)
 	{
 		try
 		{
@@ -36,19 +38,19 @@ public class DomainEventPublisher<TContext> : IDomainEventPublisher where TConte
 			var outboxMessage = new OutboxMessage
 			{
 				Id = domainEvent.Id,
-				EventType = domainEvent?.GetType()?.AssemblyQualifiedName,
 				Payload = serializedObject,
-				CreatedAtUtc = domainEvent.OccurredOnUtc
+				CreatedAtUtc = domainEvent.OccurredOnUtc,
+				EventType = domainEvent?.GetType()?.AssemblyQualifiedName,
 			};
 
 			_logger.LogWarning($"Publishing domain event Type: {domainEvent?.GetType()?.AssemblyQualifiedName}");
 
 
-			await _outboxRepository.AddAsync(outboxMessage, cancellationToken);
+			return await _outboxRepository.AddAsync(outboxMessage, cancellationToken);
 		}
 		catch (Exception ex)
 		{
-			Debug.WriteLine($"Error while publishing domain event: {ex.Message}");
+			return Result.Failure(new Error("DomainEventPublishError", $"Error while publishing domain event: {ex.Message}"));
 		}
 	}
 }

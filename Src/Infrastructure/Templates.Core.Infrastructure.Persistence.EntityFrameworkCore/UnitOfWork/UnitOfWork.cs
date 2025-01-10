@@ -1,8 +1,5 @@
-﻿using System.Text;
-using System.Diagnostics;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Templates.Core.Domain.Shared;
-using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Templates.Core.Domain.Primitives;
 using Templates.Core.Domain.Repositories;
@@ -103,7 +100,10 @@ public abstract class UnitOfWork<TContext>(DbContext dbContext, IHttpContextAcce
 			{
 				foreach (var domainEvent in aggregate.GetDomainEvents())
 				{
-					await _domainEventPublisher.PublishAsync(domainEvent, cancellationToken);
+					var result = await _domainEventPublisher.PublishAsync(domainEvent, cancellationToken);
+
+					if (!result.IsSuccess)
+						return result;
 				}
 
 				aggregate.ClearDomainEvents();
@@ -113,7 +113,7 @@ public abstract class UnitOfWork<TContext>(DbContext dbContext, IHttpContextAcce
 		}
 		catch (Exception ex)
 		{
-			return Result.Failure(new Error("DomainEventError", "An error occurred while saving domain events."));
+			return Result.Failure(new Error("DomainEventError", $"An error occurred while saving domain events. {ex.Message}"));
 		}
 	}
 	protected async Task<Result> TriggerOutboxProcessingAsync(CancellationToken cancellationToken)
@@ -135,7 +135,7 @@ public abstract class UnitOfWork<TContext>(DbContext dbContext, IHttpContextAcce
 		}
 		catch (Exception ex)
 		{
-			return Result.Failure(new Error("OutboxProcessingError", "An error occurred while processing the outbox messages, With Message : " + ex.Message));
+			return Result.Failure(new Error("OutboxProcessingError", $"An error occurred while processing the outbox messages, With Message : {ex.Message}"));
 		}
 	}
 	#endregion

@@ -17,17 +17,14 @@ namespace Templates.Core.Infrastructure.Messaging.EntityFrameworkCore.MessageBro
 public class RabbitMQPublisher(IOptions<RabbitMQSettings> options, IMessageSerializer serializer, IMessageCompressor compressor, IMessageEncryptor encryptor, AsyncRetryPolicy retryPolicy, AsyncCircuitBreakerPolicy circuitBreaker) : IMessagePublisher
 {
 	#region Properties
+	protected readonly ConcurrentDictionary<string, bool> _declaredQueues = new();
+	protected readonly ConcurrentDictionary<string, bool> _declaredExchanges = new();
 	protected readonly RabbitMQSettings _settings = options.Value ?? throw new ArgumentNullException(nameof(options));
 	protected readonly IMessageEncryptor _encryptor = encryptor ?? throw new ArgumentNullException(nameof(encryptor));
 	protected readonly AsyncRetryPolicy _retryPolicy = retryPolicy ?? throw new ArgumentNullException(nameof(retryPolicy));
 	protected readonly IMessageCompressor _compressor = compressor ?? throw new ArgumentNullException(nameof(compressor));
 	protected readonly IMessageSerializer _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
 	protected readonly AsyncCircuitBreakerPolicy _circuitBreaker = circuitBreaker ?? throw new ArgumentNullException(nameof(circuitBreaker));
-	protected readonly ConcurrentDictionary<string, bool> _declaredExchanges = new();
-	protected readonly ConcurrentDictionary<string, bool> _declaredQueues = new();
-
-	#endregion
-	#region Constructor
 	#endregion
 
 	#region IMessagePublisher Implementation

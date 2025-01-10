@@ -5,11 +5,19 @@ using Microsoft.Extensions.DependencyInjection;
 using Templates.Core.Infrastructure.Abstraction.Outbox.Processor;
 
 namespace Templates.Core.Containers.API.Middleware;
-public class OutboxProcessingMiddleware<TContext>(RequestDelegate next, ILogger<OutboxProcessingMiddleware<TContext>> logger) where TContext : DbContext
+public class OutboxProcessingMiddleware<TContext> where TContext : DbContext
 {
 	#region Properties
-	protected readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-	protected readonly RequestDelegate _next = next ?? throw new ArgumentNullException(nameof(next));
+	protected readonly ILogger _logger;
+	protected readonly RequestDelegate _next;
+	#endregion
+
+	#region Constructor
+	public OutboxProcessingMiddleware(RequestDelegate next, ILogger<OutboxProcessingMiddleware<TContext>> logger)
+	{
+		_next = next ?? throw new ArgumentNullException(nameof(next));
+		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
+	}
 	#endregion
 
 	#region Middleware Implementation

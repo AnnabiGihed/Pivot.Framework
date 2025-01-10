@@ -7,21 +7,16 @@ using Templates.Core.Infrastructure.Abstraction.Outbox.Models;
 using Templates.Core.Infrastructure.Abstraction.Outbox.Repositories;
 using Templates.Core.Infrastructure.Abstraction.Outbox.DomainEventPublisher;
 
-
 namespace Templates.Core.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Publisher;
 
-public class DomainEventPublisher<TContext> : IDomainEventPublisher where TContext : DbContext
+public class DomainEventPublisher<TContext>(IOutboxRepository<TContext> outboxRepository, ILogger<DomainEventPublisher<TContext>> logger) : IDomainEventPublisher where TContext : DbContext
 {
 	#region Properties
-	protected readonly IOutboxRepository<TContext> _outboxRepository;
-	protected readonly ILogger<DomainEventPublisher<TContext>> _logger;
+	protected readonly IOutboxRepository<TContext> _outboxRepository = outboxRepository;
+	protected readonly ILogger<DomainEventPublisher<TContext>> _logger = logger;
 	#endregion
-	public DomainEventPublisher(IOutboxRepository<TContext> outboxRepository, ILogger<DomainEventPublisher<TContext>> logger)
-	{
-		_outboxRepository = outboxRepository;
-		_logger = logger;
-	}
 
+	#region IDomainEventPublisher Implementation
 	public async Task<Result> PublishAsync(IDomainEvent domainEvent, CancellationToken cancellationToken)
 	{
 		try
@@ -53,4 +48,5 @@ public class DomainEventPublisher<TContext> : IDomainEventPublisher where TConte
 			return Result.Failure(new Error("DomainEventPublishError", $"Error while publishing domain event: {ex.Message}"));
 		}
 	}
+	#endregion
 }

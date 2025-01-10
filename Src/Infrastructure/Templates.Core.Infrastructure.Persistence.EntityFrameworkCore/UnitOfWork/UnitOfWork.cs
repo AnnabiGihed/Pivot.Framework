@@ -48,15 +48,15 @@ public abstract class UnitOfWork<TContext>(DbContext dbContext, IHttpContextAcce
 		}
 		catch (DbUpdateConcurrencyException ex)
 		{
-			return Result.Failure(new Error("DbUpdateConcurrencyError", "A concurrency conflict occurred while saving changes, With Message" + ex.Message));
+			return Result.Failure(new Error("DbUpdateConcurrencyError", $"A concurrency conflict occurred while saving changes, With Message : {ex.Message}"));
 		}
 		catch (DbUpdateException ex)
 		{
-			return Result.Failure(new Error("DatabaseError", "A database update error occurred With Message" + ex.Message));
+			return Result.Failure(new Error("DatabaseError", $"A database update error occurred With Message : {ex.Message}"));
 		}
 		catch (Exception ex)
 		{
-			return Result.Failure(new Error("UnexpectedError", "An unexpected error occurred. With Message" + ex.Message));
+			return Result.Failure(new Error("UnexpectedError", $"An unexpected error occurred. With Message : {ex.Message}"));
 		}
 	}
 	#endregion

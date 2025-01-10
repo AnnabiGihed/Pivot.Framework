@@ -57,7 +57,7 @@ public class RabbitMQReceiver(IOptions<RabbitMQSettings> options, ILogger<Rabbit
 			try
 			{
 				using var scope = _serviceProvider.CreateScope(); // Create a scope for resolving scoped services
-				var scopedMediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+				var scopedMediator = scope.ServiceProvider.GetRequiredService<IMediator>(); // Use scoped IMediator
 
 				var encryptedMessage = ea.Body.ToArray();
 				var compressedMessage = _messageEncryptor.Decrypt(encryptedMessage);
@@ -68,7 +68,7 @@ public class RabbitMQReceiver(IOptions<RabbitMQSettings> options, ILogger<Rabbit
 
 				// Deserialize the payload into the appropriate domain event
 				var domainEventType = Type.GetType(ea.BasicProperties.Type);
-				_logger.LogWarning($"Retrived Domain Event Type: {ea.BasicProperties.Type}");
+				_logger.LogWarning($"Retrieved Domain Event Type: {ea.BasicProperties.Type}");
 
 				if (domainEventType == null)
 				{
@@ -85,7 +85,8 @@ public class RabbitMQReceiver(IOptions<RabbitMQSettings> options, ILogger<Rabbit
 					return;
 				}
 
-				// Use Mediator to handle the domain event
+				_logger.LogWarning($"Unknown event type: {notificationEvent}");
+				// Publish the domain event using the scoped mediator
 				await scopedMediator.Publish(notificationEvent);
 
 				// Acknowledge the message
@@ -105,6 +106,7 @@ public class RabbitMQReceiver(IOptions<RabbitMQSettings> options, ILogger<Rabbit
 
 		_logger.LogInformation($"Started listening on queue: {_settings.Queue}");
 	}
+
 	#endregion
 
 	#region Utilities

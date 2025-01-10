@@ -78,6 +78,8 @@ public class RabbitMQReceiver(IOptions<RabbitMQSettings> options, ILogger<Rabbit
 				}
 
 				var domainEvent = JsonConvert.DeserializeObject(messagePayload, domainEventType);
+				_logger.LogWarning($"Desserialized Domain Event: {domainEvent}");
+
 				if (domainEvent is not INotification notificationEvent)
 				{
 					_logger.LogWarning($"Deserialized object is not an INotification: {ea.BasicProperties.Type}");
@@ -85,7 +87,7 @@ public class RabbitMQReceiver(IOptions<RabbitMQSettings> options, ILogger<Rabbit
 					return;
 				}
 
-				_logger.LogWarning($"Unknown event type: {notificationEvent}");
+				_logger.LogWarning($"Notification : {notificationEvent}");
 				// Publish the domain event using the scoped mediator
 				await scopedMediator.Publish(notificationEvent);
 

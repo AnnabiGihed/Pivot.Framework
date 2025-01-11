@@ -73,7 +73,7 @@ public static class HangfireExtensions
 	public static IServiceCollection AddRecurringJobManager<TIdentifier>(this IServiceCollection services)
 	{
 		// Register the generic RecurringJobManager to allow dynamic parameter and result types.
-		services.AddScoped(typeof(IRecurringJobService<,,>), typeof(IRecurringJobService<,,>));
+		services.AddScoped(typeof(IRecurringJobService<,,>), typeof(RecurringJobService<,,>));
 		return services;
 	}
 }

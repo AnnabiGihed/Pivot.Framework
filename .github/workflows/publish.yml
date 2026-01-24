@@ -19,9 +19,6 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '10.x'
-        source-url: https://nuget.pkg.github.com/AnnabiGihed/index.json
-      env:
-        NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Extract tag version
       id: extract_version
@@ -49,7 +46,8 @@ jobs:
       run: |
         for nupkg in $(find . -name "*.nupkg"); do
           echo "Publishing package: $nupkg"
-          dotnet nuget push "$nupkg" --skip-duplicate
+          dotnet nuget push "$nupkg" \
+            --source "https://nuget.pkg.github.com/AnnabiGihed/index.json" \
+            --api-key ${{ secrets.GITHUB_TOKEN }} \
+            --skip-duplicate
         done
-      env:
-        NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

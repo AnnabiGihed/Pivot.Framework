@@ -7,6 +7,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Version>1.0.0</Version>
     <Authors>Annabi Gihed</Authors>
+    <PackageId>Templates.Core.Infrastructure.Abstraction</PackageId>
     <Description>Templates.Core.Infrastructure.Abstraction</Description>
     <RepositoryUrl>https://github.com/AnnabiGihed/Templates.Core</RepositoryUrl>
   </PropertyGroup>

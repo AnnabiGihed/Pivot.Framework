@@ -2,14 +2,14 @@ name: Publish NuGet Packages
 on:
   push:
     tags:
-      - 'v*.*.*' # Trigger on version tags (e.g., v1.0.0)
+      - 'v*.*.*'
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write  # Required for publishing to GitHub Packages
+      packages: write
     
     steps:
     - name: Checkout code
@@ -18,19 +18,20 @@ jobs:
     - name: Set up .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '10.x' # Update as needed (e.g., '7.x' or 'latest')
+        dotnet-version: '10.x'
+        source-url: https://nuget.pkg.github.com/AnnabiGihed/index.json
+      env:
+        NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Extract tag version
       id: extract_version
       run: |
-        # Remove the "v" prefix from the tag (e.g., v1.0.0 -> 1.0.0)
         TAG_VERSION=${GITHUB_REF#refs/tags/v}
         echo "Tag version: $TAG_VERSION"
         echo "version=$TAG_VERSION" >> $GITHUB_ENV
     
     - name: Update project versions
       run: |
-        # Find all .csproj files and update the Version property
         for csproj in $(find . -name "*.csproj"); do
           echo "Updating version for: $csproj"
           sed -i "s|<Version>.*</Version>|<Version>${{ env.version }}</Version>|" "$csproj"
@@ -38,7 +39,6 @@ jobs:
     
     - name: Build and pack all projects
       run: |
-        # Find all .csproj files, build, and pack each
         for csproj in $(find . -name "*.csproj"); do
           echo "Processing project: $csproj"
           dotnet build "$csproj" -c Release
@@ -47,11 +47,9 @@ jobs:
     
     - name: Publish all NuGet packages
       run: |
-        # Find all .nupkg files in the workspace and push to GitHub
         for nupkg in $(find . -name "*.nupkg"); do
           echo "Publishing package: $nupkg"
-          dotnet nuget push "$nupkg" \
-            --source "https://nuget.pkg.github.com/AnnabiGihed/index.json" \
-            --api-key ${{ secrets.GITHUB_TOKEN }} \
-            --skip-duplicate
+          dotnet nuget push "$nupkg" --skip-duplicate
         done
+      env:
+        NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

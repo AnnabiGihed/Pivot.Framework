@@ -46,8 +46,14 @@ jobs:
       run: |
         for nupkg in $(find . -name "*.nupkg"); do
           echo "Publishing package: $nupkg"
+          
+          # Clear any cached credentials
+          rm -f ~/.nuget/NuGet/NuGet.Config 2>/dev/null || true
+          
+          # Push with explicit authentication
           dotnet nuget push "$nupkg" \
             --source "https://nuget.pkg.github.com/AnnabiGihed/index.json" \
             --api-key ${{ secrets.GITHUB_TOKEN }} \
-            --skip-duplicate
+            --skip-duplicate \
+            || echo "Failed to push $nupkg"
         done

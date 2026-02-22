@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+
+    <PackageId>Templates.Core.Caching</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Templates.Core</Authors>
+    <Description>
+      Redis integration for Templates.Core. Provides:
+      - IDistributedTokenCache (cache validated JWT claims → skip repeated parsing)
+      - ITokenRevocationCache  (blacklist tokens on logout before expiry)
+      - ICacheService          (generic typed distributed cache)
+      - KeycloakRedisJwtEvents (plug into AddJwtBearer to wire it all together)
+    </Description>
+    <PackageTags>redis;keycloak;cache;jwt;authentication;aspnetcore</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Templates.Core.Authentication\Templates.Core.Authentication.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,18 +1,18 @@
 ﻿namespace Templates.Core.Caching.Abstractions;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// IDistributedTokenCache
-// After a JWT is validated once, its parsed claims are cached in Redis for the
-// remainder of the token's lifetime. Subsequent requests with the same token
-// skip Keycloak metadata fetching and local signature verification.
-// ─────────────────────────────────────────────────────────────────────────────
-
 /// <summary>
-/// Caches validated JWT claim sets in Redis to avoid re-parsing on every request.
+/// Author      : Gihed Annabi
+/// Date        : 02-2026
+/// Purpose     : Defines a distributed JWT claims cache backed by Redis.
+///              Caches validated claim sets for the remaining token lifetime to avoid
+///              re-parsing and repeated validation work on subsequent requests.
 /// </summary>
 public interface IDistributedTokenCache
 {
-	/// <summary>Removes a cached entry. Call on revocation or logout.</summary>
+	/// <summary>
+	/// Removes a cached entry.
+	/// Call on revocation or logout.
+	/// </summary>
 	Task InvalidateAsync(string accessToken, CancellationToken ct = default);
 
 	/// <summary>
@@ -21,6 +21,8 @@ public interface IDistributedTokenCache
 	/// </summary>
 	Task<CachedTokenClaims?> GetClaimsAsync(string accessToken, CancellationToken ct = default);
 
-	/// <summary>Caches the claims for an access token until it expires.</summary>
+	/// <summary>
+	/// Caches the claims for an access token until it expires.
+	/// </summary>
 	Task SetClaimsAsync(string accessToken, CachedTokenClaims claims, DateTimeOffset tokenExpiresAt, CancellationToken ct = default);
 }

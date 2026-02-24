@@ -135,9 +135,6 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 	{
 		try
 		{
-			// State format: "<oauthState>.<sessionId>"
-			// Split on the last dot so the oauthState portion (which may itself
-			// contain dots in theory) is preserved correctly.
 			var lastDot = returnedState.LastIndexOf('.');
 			if (lastDot < 0)
 			{
@@ -203,8 +200,6 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 
 			await _sessionStore.SaveAsync(sessionId, flowSession, ct);
 
-			// The callback is always a fresh HTTP GET — safe to write the cookie here
-			// regardless of whether it was written during LoginAsync.
 			SetSessionCookie(sessionId, persistent: true);
 
 			_sessionId = sessionId;
@@ -213,8 +208,7 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 
 			NotifyAuthStateChanged(isAuthenticated: true);
 
-			_logger.LogInformation("Keycloak: user {Username} logged in via Blazor.",
-				_user.FindFirst("preferred_username")?.Value);
+			_logger.LogInformation("Keycloak: user {Username} logged in via Blazor.", _user.FindFirst("preferred_username")?.Value);
 
 			return true;
 		}
@@ -231,8 +225,8 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 	}
 	#endregion
 
-		#region Logout
-		/// <inheritdoc />
+	#region Logout
+	/// <inheritdoc />
 	public async Task LogoutAsync(CancellationToken ct = default)
 	{
 		var current = _session;
@@ -244,9 +238,11 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 
 		NotifyAuthStateChanged(isAuthenticated: false);
 
+		// Remove from Redis
 		if (sessionId is not null)
 			await _sessionStore.RemoveAsync(sessionId, ct);
 
+		// Revoke the refresh token server-side
 		if (current?.RefreshToken is not null)
 		{
 			try { await RevokeTokenAsync(current.RefreshToken, ct); }
@@ -256,7 +252,11 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 			}
 		}
 
-		DeleteSessionCookie();
+		var ctx = _httpContextAccessor.HttpContext;
+		if (ctx is not null && !ctx.Response.HasStarted)
+		{
+			DeleteSessionCookie();
+		}
 
 		if (current?.IdToken is not null)
 		{
@@ -264,6 +264,10 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 			var endSessionUrl = $"{_options.LogoutUrl}" + $"?id_token_hint={Uri.EscapeDataString(current.IdToken)}" + $"&post_logout_redirect_uri={postLogoutUri}";
 
 			_nav.NavigateTo(endSessionUrl, forceLoad: true);
+		}
+		else
+		{
+			_nav.NavigateTo("/", forceLoad: true);
 		}
 
 		_logger.LogInformation("Keycloak: user logged out.");

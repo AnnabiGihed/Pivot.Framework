@@ -199,36 +199,6 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 	}
 	#endregion
 
-	#region Prepare Login
-	/// <inheritdoc />
-	public async Task<LoginFlowContext> PrepareLoginAsync(string? returnUrl = null, CancellationToken ct = default)
-	{
-		var sessionId = GenerateSessionId();
-		var (codeVerifier, codeChallenge) = GeneratePkce();
-		var state = GenerateRandom();
-		var nonce = GenerateRandom();
-
-		var flowSession = new BlazorTokenSession
-		{
-			PkceVerifier = codeVerifier,
-			OAuthState = state,
-			Nonce = nonce,
-			ReturnUrl = returnUrl ?? _nav.BaseUri
-		};
-
-		await _sessionStore.SaveAsync(sessionId, flowSession, ct);
-
-		var redirectUri = BuildCallbackUri();
-		var authUrl = BuildAuthUrl(codeChallenge, state, nonce, redirectUri);
-
-		return new LoginFlowContext
-		{
-			SessionId = sessionId,
-			AuthorizationUrl = authUrl
-		};
-	}
-	#endregion
-
 	#region Logout
 	/// <inheritdoc />
 	public async Task LogoutAsync(CancellationToken ct = default)

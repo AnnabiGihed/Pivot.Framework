@@ -24,22 +24,4 @@ public interface IBlazorKeycloakAuthService : IKeycloakAuthService
 	/// <param name="ct">Cancellation token.</param>
 	/// <returns><c>true</c> on success; <c>false</c> on state mismatch, nonce failure, or exchange error.</returns>
 	Task<bool> HandleCallbackAsync(string code, string returnedState, CancellationToken ct = default);
-
-	/// <summary>
-	/// Prepares the PKCE login flow and returns the data needed to complete it,
-	/// WITHOUT writing any cookies or performing any redirect.
-	///
-	/// Use this instead of <see cref="IKeycloakAuthService.LoginAsync"/> when inside
-	/// an interactive Blazor Server circuit, where the HTTP response is already committed
-	/// and Set-Cookie headers can no longer be written.
-	///
-	/// The caller is responsible for:
-	/// 1. Writing <see cref="LoginFlowContext.SessionId"/> as an HttpOnly cookie named
-	///    <c>kc_session</c> on the outgoing response.
-	/// 2. Redirecting the browser to <see cref="LoginFlowContext.AuthorizationUrl"/>.
-	///
-	/// Both steps must happen in a real HTTP request context (e.g. a minimal-API endpoint
-	/// mapped at <c>/auth/initiate-login</c>) rather than inside a Blazor event handler.
-	/// </summary>
-	Task<LoginFlowContext> PrepareLoginAsync(string? returnUrl = null, CancellationToken ct = default);
 }

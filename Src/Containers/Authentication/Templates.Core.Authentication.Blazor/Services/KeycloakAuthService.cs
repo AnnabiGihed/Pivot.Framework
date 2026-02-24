@@ -302,28 +302,50 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 			if (session is null || !session.HasTokens)
 				return false;
 
+			if (session.CanRefresh)
+			{
+				try
+				{
+					_sessionId = sessionId;
+					_session = session;
+					await RefreshInternalAsync(force: true, ct);
+					_logger.LogDebug("Keycloak: Blazor session validated and refreshed on restore.");
+					return true;
+				}
+				catch (Exception ex)
+				{
+					_logger.LogInformation(ex, "Keycloak: session restore rejected by Keycloak (session terminated externally). Clearing local state.");
+
+					_session = null;
+					_user = null;
+					_sessionId = null;
+
+					await _sessionStore.RemoveAsync(sessionId, ct);
+
+					var ctx = _httpContextAccessor.HttpContext;
+					if (ctx is not null && !ctx.Response.HasStarted)
+						DeleteSessionCookie();
+
+					NotifyAuthStateChanged(isAuthenticated: false);
+					return false;
+				}
+			}
+
 			if (!session.IsExpired)
 			{
 				_sessionId = sessionId;
 				_session = session;
 				_user = await ValidateAndParseAccessTokenAsync(session.AccessToken!, ct);
 				NotifyAuthStateChanged(isAuthenticated: true);
-				_logger.LogDebug("Keycloak: Blazor session restored from Redis.");
-				return true;
-			}
-
-			if (session.CanRefresh)
-			{
-				_sessionId = sessionId;
-				_session = session;
-				await RefreshInternalAsync(force: true, ct);
-				_logger.LogInformation("Keycloak: Blazor session refreshed on restore.");
+				_logger.LogDebug("Keycloak: Blazor session restored (no refresh token, trusting local expiry).");
 				return true;
 			}
 
 			_logger.LogInformation("Keycloak: stored Blazor session expired and cannot be refreshed.");
 			await _sessionStore.RemoveAsync(sessionId, ct);
-			DeleteSessionCookie();
+			var httpCtx = _httpContextAccessor.HttpContext;
+			if (httpCtx is not null && !httpCtx.Response.HasStarted)
+				DeleteSessionCookie();
 			return false;
 		}
 		catch (Exception ex)

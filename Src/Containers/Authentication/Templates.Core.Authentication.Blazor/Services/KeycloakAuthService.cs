@@ -100,22 +100,15 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 
 			await _sessionStore.SaveAsync(sessionId, flowSession, ct);
 
-			// Try to write the cookie now (works in SSR / Razor Page context).
-			// If the response is already committed (interactive Blazor Server circuit),
-			// we fall back to passing the session ID through the OAuth2 state parameter
-			// so the callback page can write the cookie on the returning request,
-			// which is always a fresh HTTP GET where headers are not yet committed.
 			var ctx = _httpContextAccessor.HttpContext;
 			if (ctx is not null && !ctx.Response.HasStarted)
 			{
 				SetSessionCookie(sessionId, persistent: false);
 			}
-			// else: sessionId is embedded in state below; HandleCallbackAsync recovers it.
+
+			var stateWithSession = $"{state}.{sessionId}";
 
 			var redirectUri = BuildCallbackUri();
-			// Encode sessionId into state so the callback can recover it when the
-			// cookie could not be written upfront: state = "<oauthState>.<sessionId>"
-			var stateWithSession = $"{state}.{sessionId}";
 			var authUrl = BuildAuthUrl(codeChallenge, stateWithSession, nonce, redirectUri);
 
 			_nav.NavigateTo(authUrl, forceLoad: true);
@@ -138,21 +131,16 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 			var lastDot = returnedState.LastIndexOf('.');
 			if (lastDot < 0)
 			{
-				_logger.LogWarning("Keycloak: malformed state parameter — missing session ID segment.");
+				_logger.LogWarning("Keycloak: malformed state — missing session ID segment.");
 				return false;
 			}
 
 			var oauthState = returnedState[..lastDot];
-			var sessionIdFromState = returnedState[(lastDot + 1)..];
-
-			// Prefer the session ID from the HttpOnly cookie (set when the response
-			// was not yet committed). Fall back to the value embedded in state
-			// (set when LoginAsync ran inside a committed Blazor circuit).
-			var sessionId = ReadSessionIdFromCookie() ?? sessionIdFromState;
+			var sessionId = returnedState[(lastDot + 1)..];
 
 			if (string.IsNullOrEmpty(sessionId))
 			{
-				_logger.LogWarning("Keycloak: could not determine session ID from cookie or state.");
+				_logger.LogWarning("Keycloak: session ID segment in state is empty.");
 				return false;
 			}
 
@@ -163,7 +151,6 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 				return false;
 			}
 
-			// CSRF — validate the oauth state portion only
 			if (string.IsNullOrEmpty(flowSession.OAuthState) || flowSession.OAuthState != oauthState)
 			{
 				_logger.LogWarning("Keycloak: OAuth2 state mismatch — possible CSRF attack.");
@@ -200,6 +187,8 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 
 			await _sessionStore.SaveAsync(sessionId, flowSession, ct);
 
+			// Callback is always a fresh HTTP GET from Keycloak — safe to write the cookie.
+			// This also overwrites any stale kc_session cookie left from a previous session.
 			SetSessionCookie(sessionId, persistent: true);
 
 			_sessionId = sessionId;

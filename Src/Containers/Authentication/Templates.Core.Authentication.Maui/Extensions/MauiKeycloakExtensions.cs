@@ -22,6 +22,39 @@ public static class MauiKeycloakExtensions
 	/// - <see cref="IKeycloakTokenStorage"/> (singleton)
 	/// - <see cref="KeycloakAuthorizationMessageHandler"/> (transient)
 	/// - Named HttpClient used internally by the auth service
+	///
+	/// <para><strong>Platform setup required:</strong> The PKCE callback and post-logout redirect
+	/// URIs use a custom scheme in the form <c>{ClientId}://callback</c> and
+	/// <c>{ClientId}://loggedout</c>. You must register this scheme on each target platform:</para>
+	/// <list type="bullet">
+	///   <item>
+	///     <term>Android</term>
+	///     <description>
+	///       Add an <c>IntentFilter</c> with <c>android:scheme="{ClientId}"</c> to your
+	///       <c>MainActivity</c> and call <c>WebAuthenticatorCallbackActivity</c>, or use the
+	///       <c>[QueryProperty]</c> / <c>[Activity(LaunchMode = LaunchMode.SingleTop)]</c> approach
+	///       documented at
+	///       <see href="https://learn.microsoft.com/dotnet/maui/platform-integration/communication/authentication"/>.
+	///     </description>
+	///   </item>
+	///   <item>
+	///     <term>iOS / macOS</term>
+	///     <description>
+	///       Add the scheme to the <c>CFBundleURLSchemes</c> array in <c>Info.plist</c>
+	///       and ensure <c>OpenUrl</c> / <c>ContinueUserActivity</c> is forwarded to
+	///       <c>WebAuthenticator.Default.OpenUrl(url)</c>.
+	///     </description>
+	///   </item>
+	///   <item>
+	///     <term>Windows</term>
+	///     <description>
+	///       Register the protocol in <c>Package.appxmanifest</c> under
+	///       <c>Extensions &gt; Protocol</c> with the same scheme name.
+	///     </description>
+	///   </item>
+	/// </list>
+	/// <para>Omitting platform registration causes the post-logout redirect and the
+	/// OAuth2 callback to fail silently — the browser will not return control to the app.</para>
 	/// </summary>
 	public static IServiceCollection AddKeycloakMaui(this IServiceCollection services, IConfiguration configuration)
 	{

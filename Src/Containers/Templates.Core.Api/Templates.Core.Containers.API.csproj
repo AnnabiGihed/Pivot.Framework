@@ -26,6 +26,8 @@
     <ProjectReference Include="..\..\Core\Templates.Core.Application\Templates.Core.Application.csproj" />
     <ProjectReference Include="..\..\Core\Templates.Core.Domain\Templates.Core.Domain.csproj" />
     <ProjectReference Include="..\..\Infrastructure\Templates.Core.Infrastructure.Abstraction\Templates.Core.Infrastructure.Abstraction.csproj" />
+    <ProjectReference Include="..\Authentication\Templates.Core.Authentication.API\Templates.Core.Authentication.AspNetCore.csproj" />
+    <ProjectReference Include="..\Templates.Core.Caching\Templates.Core.Caching.csproj" />
   </ItemGroup>
 
 </Project>

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Templates.Core.Authentication.AspNetCore.Extensions;
@@ -53,11 +54,31 @@ public static class SwaggerKeycloakExtensions
 
 	/// <summary>
 	/// Adds the Keycloak OAuth2 Authorization Code + PKCE security definition to Swagger.
+	/// Resolves <see cref="KeycloakOptions"/> from the already-built DI container.
 	/// </summary>
 	public static SwaggerGenOptions AddKeycloakSecurityDefinition(this SwaggerGenOptions options, IServiceProvider serviceProvider)
 	{
 		var keycloak = serviceProvider.GetRequiredService<IOptions<KeycloakOptions>>().Value;
+		return options.AddKeycloakSecurityDefinition(keycloak);
+	}
 
+	/// <summary>
+	/// Adds the Keycloak OAuth2 Authorization Code + PKCE security definition to Swagger.
+	/// Use this overload during <c>services.AddSwaggerGen(...)</c> — it reads options directly
+	/// from <paramref name="configuration"/> and avoids calling <c>BuildServiceProvider()</c>.
+	/// </summary>
+	public static SwaggerGenOptions AddKeycloakSecurityDefinition(this SwaggerGenOptions options, IConfiguration configuration)
+	{
+		var keycloak = configuration.GetSection(KeycloakOptions.SectionName).Get<KeycloakOptions>()
+			?? throw new InvalidOperationException($"Missing configuration section '{KeycloakOptions.SectionName}'.");
+
+		return options.AddKeycloakSecurityDefinition(keycloak);
+	}
+	#endregion
+
+	#region Helpers
+	private static SwaggerGenOptions AddKeycloakSecurityDefinition(this SwaggerGenOptions options, KeycloakOptions keycloak)
+	{
 		options.AddSecurityDefinition(SecuritySchemeName, new OpenApiSecurityScheme
 		{
 			Type = SecuritySchemeType.OAuth2,
@@ -75,9 +96,7 @@ public static class SwaggerKeycloakExtensions
 
 		return options;
 	}
-	#endregion
 
-	#region Helpers
 	private static Dictionary<string, string> ParseScopes(string scopes)
 	{
 		return scopes

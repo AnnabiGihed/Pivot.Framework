@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Security.Claims;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,7 +48,9 @@ public static class KeycloakAuthenticationExtensions
 					ValidateLifetime = true,
 					ClockSkew = TimeSpan.FromSeconds(30),
 
-					RoleClaimType = "roles",
+					// Use the standard .NET role claim type so [Authorize(Roles = "...")] and
+					// KeycloakClaimsTransformer.FlattenRoles both operate on the same claim name.
+					RoleClaimType = ClaimTypes.Role,
 					NameClaimType = "preferred_username"
 				};
 

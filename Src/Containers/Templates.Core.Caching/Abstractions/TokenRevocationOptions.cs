@@ -1,4 +1,6 @@
-﻿/// <summary>
+﻿namespace Templates.Core.Caching.Abstractions;
+
+/// <summary>
 /// Author      : Gihed Annabi
 /// Date        : 02-2026
 /// Purpose     : Configuration options for <see cref="ITokenRevocationCache"/>.
@@ -15,4 +17,15 @@ public sealed class TokenRevocationOptions
 	/// Defaults to 30 days which covers most standard Keycloak configurations.
 	/// </summary>
 	public TimeSpan RevokeAllTtl { get; set; } = TimeSpan.FromDays(30);
+
+	/// <summary>
+	/// Validates that the options are in a usable state.
+	/// Throws <see cref="InvalidOperationException"/> if <see cref="RevokeAllTtl"/> is
+	/// zero or negative, which would make global user revocation silently ineffective.
+	/// </summary>
+	public void Validate()
+	{
+		if (RevokeAllTtl <= TimeSpan.Zero)
+			throw new InvalidOperationException($"{SectionName}.{nameof(RevokeAllTtl)} must be a positive duration. " + $"Set it to your Keycloak realm's SSO Session Max (e.g. '30.00:00:00' for 30 days).");
+	}
 }

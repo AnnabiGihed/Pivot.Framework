@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System.Security.Claims;
+using Microsoft.Extensions.Options;
 using Templates.Core.Caching.Redis;
 using Templates.Core.Authentication;
+using Microsoft.IdentityModel.Tokens;
 using Templates.Core.Caching.Handlers;
 using Microsoft.Extensions.Configuration;
 using Templates.Core.Caching.Abstractions;
@@ -25,7 +27,7 @@ public static class RedisCachingExtensions
 	public static string? GetBearerToken(this Microsoft.AspNetCore.Http.HttpContext ctx)
 	{
 		var raw = ctx.Request.Headers.Authorization.ToString();
-		if (string.IsNullOrWhiteSpace(raw)) 
+		if (string.IsNullOrWhiteSpace(raw))
 			return null;
 
 		var token = raw.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? raw["Bearer ".Length..].Trim() : raw.Trim();
@@ -42,7 +44,7 @@ public static class RedisCachingExtensions
 	/// </summary>
 	public static IServiceCollection AddRedisCache(this IServiceCollection services, IConfiguration configuration, string? connectionString = null, string instanceName = "TemplatesCore:")
 	{
-		var connStr = connectionString?? configuration.GetConnectionString("Redis") ?? throw new InvalidOperationException("Missing Redis connection string. " + "Add 'ConnectionStrings:Redis' to appsettings.json.");
+		var connStr = connectionString ?? configuration.GetConnectionString("Redis") ?? throw new InvalidOperationException("Missing Redis connection string. " + "Add 'ConnectionStrings:Redis' to appsettings.json.");
 
 		services.AddStackExchangeRedisCache(opt =>
 		{
@@ -55,7 +57,12 @@ public static class RedisCachingExtensions
 
 		services.AddSingleton<ICacheService, RedisCacheService>();
 		services.AddSingleton<IDistributedTokenCache, RedisDistributedTokenCache>();
-		services.AddSingleton<ITokenRevocationCache>(sp => new RedisTokenRevocationCache(sp.GetRequiredService<ICacheService>(), sp.GetRequiredService<IOptions<TokenRevocationOptions>>().Value));
+		services.AddSingleton<ITokenRevocationCache>(sp =>
+		{
+			var opts = sp.GetRequiredService<IOptions<TokenRevocationOptions>>().Value;
+			opts.Validate();
+			return new RedisTokenRevocationCache(sp.GetRequiredService<ICacheService>(), opts);
+		});
 
 		return services;
 	}
@@ -95,18 +102,20 @@ public static class RedisCachingExtensions
 				jwt.MetadataAddress = keycloak.MetadataUrl;
 				jwt.RequireHttpsMetadata = keycloak.RequireHttpsMetadata;
 
-				jwt.TokenValidationParameters =
-					new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-					{
-						ValidateIssuer = true,
-						ValidateLifetime = true,
-						ValidateAudience = true,
-						RoleClaimType = "roles",
-						ValidIssuer = keycloak.IssuerUrl,
-						ValidAudience = keycloak.Audience,
-						ClockSkew = TimeSpan.FromSeconds(30),
-						NameClaimType = "preferred_username"
-					};
+				jwt.TokenValidationParameters = new TokenValidationParameters
+				{
+					ValidateIssuer = true,
+					ValidateLifetime = true,
+					ValidateAudience = true,
+					ValidIssuer = keycloak.IssuerUrl,
+					ValidAudience = keycloak.Audience,
+					ClockSkew = TimeSpan.FromSeconds(30),
+					NameClaimType = "preferred_username",
+
+					// Use the standard .NET role claim type so [Authorize(Roles = "...")] and
+					// KeycloakRedisJwtEvents role flattening both operate on the same claim name.
+					RoleClaimType = ClaimTypes.Role
+				};
 
 				jwt.EventsType = typeof(KeycloakRedisJwtEvents);
 			});

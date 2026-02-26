@@ -1,18 +1,19 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.IdentityModel.Protocols;
+using System.Text;
+using System.Text.Json;
 using Templates.Core.Authentication.Events;
-using Microsoft.IdentityModel.JsonWebTokens;
-using Templates.Core.Authentication.Storage;
-using Templates.Core.Authentication.Services;
+using Templates.Core.Authentication.Helpers;
 using Templates.Core.Authentication.Responses;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Templates.Core.Authentication.Services;
+using Templates.Core.Authentication.Storage;
 
 namespace Templates.Core.Authentication.Maui.Services;
 
@@ -425,51 +426,9 @@ public sealed class KeycloakAuthService : IKeycloakAuthService
 		var claims = result.ClaimsIdentity.Claims.ToList();
 		var identity = new ClaimsIdentity(claims, "keycloak", "preferred_username", ClaimTypes.Role);
 
-		FlattenKeycloakRoles(identity);
+		KeycloakRoleHelper.FlattenRoles(identity, _logger);
 
 		return new ClaimsPrincipal(identity);
-	}
-	#endregion
-
-	#region Keycloak role flattening
-	/// <summary>
-	/// Copies realm_access.roles and resource_access.*.roles into standard
-	/// <see cref="ClaimTypes.Role"/> claims so [Authorize(Roles = "...")] works.
-	/// </summary>
-	private static void FlattenKeycloakRoles(ClaimsIdentity identity)
-	{
-		var realmClaim = identity.FindFirst("realm_access");
-		if (realmClaim is not null)
-		{
-			try
-			{
-				using var doc = JsonDocument.Parse(realmClaim.Value);
-				if (doc.RootElement.TryGetProperty("roles", out var roles))
-					foreach (var r in roles.EnumerateArray())
-						if (r.GetString() is { } rv)
-							identity.AddClaim(new Claim(ClaimTypes.Role, rv));
-			}
-			catch 
-			{
-			}
-		}
-
-		var resourceClaim = identity.FindFirst("resource_access");
-		if (resourceClaim is not null)
-		{
-			try
-			{
-				using var doc = JsonDocument.Parse(resourceClaim.Value);
-				foreach (var client in doc.RootElement.EnumerateObject())
-					if (client.Value.TryGetProperty("roles", out var roles))
-						foreach (var r in roles.EnumerateArray())
-							if (r.GetString() is { } rv)
-								identity.AddClaim(new Claim(ClaimTypes.Role, rv));
-			}
-			catch 
-			{
-			}
-		}
 	}
 	#endregion
 

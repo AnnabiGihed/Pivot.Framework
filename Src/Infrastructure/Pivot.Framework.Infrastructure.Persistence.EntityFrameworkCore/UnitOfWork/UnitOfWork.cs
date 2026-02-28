@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Pivot.Framework.Domain.Shared;
 using Microsoft.EntityFrameworkCore;
 using Pivot.Framework.Domain.Primitives;
-using Pivot.Framework.Domain.Repositories;
-using Pivot.Framework.Domain.Shared;
+using Pivot.Framework.Infrastructure.Abstraction.UnitOfWork;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.DomainEventPublisher;
 
 namespace Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.UnitOfWork;
@@ -10,22 +10,28 @@ namespace Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.UnitOfW
 /// <summary>
 /// Author      : Gihed Annabi
 /// Date        : 01-2026
+/// Modified    : 02-2026 — Fixed generic constraint from "TId : IStronglyTypedId&lt;TId&gt;" to
+///               "TContext : DbContext" so that consumers can correctly inject
+///               IUnitOfWork&lt;CurviaDbContext&gt; (or any other DbContext) without requiring
+///               the DbContext to implement IStronglyTypedId, which was semantically wrong.
 /// Purpose     : Transaction-agnostic Unit of Work.
-///              Persists business data and outbox messages in the ambient transaction
-///              (transaction is owned by middleware).
+///               Persists business data and outbox messages in the ambient transaction
+///               (transaction is owned by TransactionMiddleware, not here).
+///               Concrete subclasses supply the typed DbContext via the constructor;
+///               this base class handles all auditing, outbox flushing, and commit logic.
 /// </summary>
-/// <typeparam name="TId">Strongly-typed ID used as DI scope key.</typeparam>
-public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
-	where TId : IStronglyTypedId<TId>
+/// <typeparam name="TContext">
+/// The EF Core DbContext type scoped to this unit of work.
+/// Used as a DI discriminator and to resolve the concrete DbContext from DI.
+/// </typeparam>
+public abstract class UnitOfWork<TContext> : IUnitOfWork<TContext>
+	where TContext : DbContext
 {
 	protected readonly DbContext _dbContext;
 	protected readonly IHttpContextAccessor _httpContextAccessor;
 	protected readonly IDomainEventPublisher _domainEventPublisher;
 
-	protected UnitOfWork(
-		DbContext dbContext,
-		IHttpContextAccessor httpContextAccessor,
-		IDomainEventPublisher domainEventPublisher)
+	protected UnitOfWork(TContext dbContext, IHttpContextAccessor httpContextAccessor, IDomainEventPublisher domainEventPublisher)
 	{
 		_dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
 		_httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
@@ -38,7 +44,6 @@ public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 		{
 			UpdateAuditableEntities();
 
-			// Persist domain events to the OUTBOX (not to broker)
 			var persistEventsResult = await PersistDomainEventsToOutboxAsync(cancellationToken);
 			if (persistEventsResult.IsFailure)
 				return persistEventsResult;
@@ -76,12 +81,10 @@ public abstract class UnitOfWork<TId> : IUnitOfWork<TId>
 		{
 			if (entry.State == EntityState.Added)
 			{
-				// Audit initialization for new entities (no direct property assignment)
 				entry.Entity.SetAudit(AuditInfo.Create(now, actor));
 			}
 			else if (entry.State == EntityState.Modified)
 			{
-				// Audit update for modified entities
 				entry.Entity.Audit.Modify(now, actor);
 			}
 		}

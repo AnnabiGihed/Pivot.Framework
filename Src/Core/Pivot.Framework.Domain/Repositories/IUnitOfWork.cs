@@ -1,25 +1,26 @@
-﻿using Pivot.Framework.Domain.Primitives;
-using Pivot.Framework.Domain.Shared;
+﻿using Pivot.Framework.Domain.Shared;
 
 namespace Pivot.Framework.Domain.Repositories;
 
 /// <summary>
 /// Author      : Gihed Annabi
 /// Date        : 01-2026
-/// Purpose     : Represents a unit of work scoped to a specific DbContext type via the <typeparamref name="TId"/> marker.
-///              Coordinates a single atomic database operation: auditing entity changes, flushing pending
-///              domain events to the outbox, and committing via EF Core <c>SaveChangesAsync</c>.
-///              The generic parameter <typeparamref name="TId"/> acts as a DI scoping key so that multiple
-///              DbContexts can coexist in the same process without DI ambiguity.
+/// Modified    : 02-2026 — Removed incorrect IStronglyTypedId generic constraint.
+///               The DI-scoping discriminator belongs in Infrastructure.Abstraction
+///               (IUnitOfWork&lt;TContext&gt;) where DbContext is a valid constraint.
+///               Domain only knows: "something that can atomically save changes."
+/// Purpose     : Coordinates a single atomic database operation: auditing entity changes,
+///               flushing pending domain events to the outbox, and committing via
+///               EF Core SaveChangesAsync.
+///               Implemented by IUnitOfWork&lt;TContext&gt; in Infrastructure.Abstraction,
+///               which adds the DbContext-scoped DI discriminator.
 /// </summary>
-/// <typeparam name="TId">The strongly-typed identifier used as the DI scope discriminator.</typeparam>
-public interface IUnitOfWork<TId>
-	where TId : IStronglyTypedId<TId>
+public interface IUnitOfWork
 {
 	/// <summary>
 	/// Atomically persists all pending entity changes.
 	/// Internally: stamps audit fields on modified entities, serialises raised domain events to the outbox,
-	/// then calls EF Core <c>SaveChangesAsync</c> within the ambient transaction.
+	/// then calls EF Core SaveChangesAsync within the ambient transaction.
 	/// </summary>
 	/// <param name="cancellationToken">Token to observe for cooperative cancellation.</param>
 	/// <returns>

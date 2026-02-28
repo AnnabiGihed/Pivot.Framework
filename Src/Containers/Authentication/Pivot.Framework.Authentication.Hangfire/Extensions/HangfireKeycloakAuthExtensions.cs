@@ -1,9 +1,10 @@
 ﻿using Hangfire;
 using Hangfire.Dashboard;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Pivot.Framework.Authentication.Hangfire.Constants;
 using Pivot.Framework.Authentication.Hangfire.Dashboard;
@@ -56,8 +57,7 @@ public static class HangfireKeycloakAuthExtensions
 
 		var requireHttps = bool.TryParse(keycloakSection["RequireHttpsMetadata"], out var rh) && rh;
 
-		services
-			.AddAuthentication()
+		new AuthenticationBuilder(services)
 			.AddCookie(HangfireAuthConstants.CookieScheme, o =>
 			{
 				o.LoginPath = "/hangfire-login";
@@ -73,9 +73,8 @@ public static class HangfireKeycloakAuthExtensions
 				o.SaveTokens = true;
 				o.RequireHttpsMetadata = requireHttps;
 				o.CallbackPath = "/hangfire-callback";
-
-				// Align claim types with the rest of the framework.
 				o.TokenValidationParameters.NameClaimType = "preferred_username";
+				o.PushedAuthorizationBehavior = PushedAuthorizationBehavior.Disable; // ← also add this
 			});
 
 		return services;

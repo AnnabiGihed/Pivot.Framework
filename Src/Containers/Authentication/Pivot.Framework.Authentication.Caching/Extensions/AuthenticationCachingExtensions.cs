@@ -59,40 +59,19 @@ internal static class AuthenticationCachingExtensions
 		services.AddSingleton<KeycloakRedisJwtEvents>();
 		#endregion
 
-		#region Keycloak Authentication
+		#region Keycloak Authentication — wire events only (JWT bearer is registered by RegisterCoreJwtBearer)
 		services.AddHttpContextAccessor();
 		services.AddScoped<ICurrentUser, CurrentUser>();
 
 		services.Configure<KeycloakOptions>(configuration.GetSection(KeycloakOptions.SectionName));
 
-		services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-			.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, jwt =>
-			{
-				var keycloak = configuration
-					.GetSection(KeycloakOptions.SectionName)
-					.Get<KeycloakOptions>()!;
-
-				keycloak.Validate();
-
-				jwt.Audience = keycloak.Audience;
-				jwt.Authority = keycloak.IssuerUrl;
-				jwt.MetadataAddress = keycloak.MetadataUrl;
-				jwt.RequireHttpsMetadata = keycloak.RequireHttpsMetadata;
-
-				jwt.TokenValidationParameters = new TokenValidationParameters
-				{
-					ValidateIssuer = true,
-					ValidateLifetime = true,
-					ValidateAudience = true,
-					ValidIssuer = keycloak.IssuerUrl,
-					ValidAudience = keycloak.Audience,
-					ClockSkew = TimeSpan.FromSeconds(30),
-					NameClaimType = "preferred_username",
-					RoleClaimType = ClaimTypes.Role
-				};
-
-				jwt.EventsType = typeof(KeycloakRedisJwtEvents);
-			});
+		// Don't call AddAuthentication/AddJwtBearer here — that's already done by
+		// KeycloakAuthenticationExtensions.RegisterCoreJwtBearer in the outer AddKeycloakAuthentication call.
+		// Just patch in the Redis-backed events type so the caching pipeline kicks in.
+		services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, jwt =>
+		{
+			jwt.EventsType = typeof(KeycloakRedisJwtEvents);
+		});
 
 		services.AddAuthorization();
 		#endregion

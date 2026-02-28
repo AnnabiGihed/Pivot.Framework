@@ -43,6 +43,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pivot.Framework.Infrastruct
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pivot.Framework.Authentication.Caching", "Src\Containers\Authentication\Pivot.Framework.Authentication.Caching\Pivot.Framework.Authentication.Caching.csproj", "{7F9A0C8C-8107-17E9-8E24-521B9F534DAE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pivot.Framework.Authentication.Hangfire", "Src\Containers\Authentication\Pivot.Framework.Authentication.Hangfire\Pivot.Framework.Authentication.Hangfire.csproj", "{894D82F3-BF43-45B7-A3E9-DE892A0E0B7E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -105,6 +107,10 @@ Global
 		{7F9A0C8C-8107-17E9-8E24-521B9F534DAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7F9A0C8C-8107-17E9-8E24-521B9F534DAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7F9A0C8C-8107-17E9-8E24-521B9F534DAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{894D82F3-BF43-45B7-A3E9-DE892A0E0B7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{894D82F3-BF43-45B7-A3E9-DE892A0E0B7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{894D82F3-BF43-45B7-A3E9-DE892A0E0B7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{894D82F3-BF43-45B7-A3E9-DE892A0E0B7E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -129,6 +135,7 @@ Global
 		{2FE29131-0E56-2DD4-67E3-E86776E498DB} = {3B691C3F-2184-4B9E-8B47-650C04203BD6}
 		{2CCD7095-7998-E803-7432-C25C8541C3D8} = {5C522C01-4562-46F5-AE0B-C0931006F43A}
 		{7F9A0C8C-8107-17E9-8E24-521B9F534DAE} = {12E58FFA-BA99-401D-A51A-2EAC9D3E0D3E}
+		{894D82F3-BF43-45B7-A3E9-DE892A0E0B7E} = {12E58FFA-BA99-401D-A51A-2EAC9D3E0D3E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7A9A2658-78B1-48DA-B95E-13688F049AB4}

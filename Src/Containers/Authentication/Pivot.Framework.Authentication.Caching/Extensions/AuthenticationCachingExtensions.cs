@@ -1,6 +1,4 @@
-﻿using System.Security.Claims;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
 using Pivot.Framework.Authentication.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,11 +30,7 @@ internal static class AuthenticationCachingExtensions
 	///   <item><see cref="ICurrentUser"/> / <see cref="CurrentUser"/> scoped service</item>
 	/// </list>
 	/// </summary>
-	internal static IServiceCollection AddKeycloakAuthenticationCaching(
-		this IServiceCollection services,
-		IConfiguration configuration,
-		string? redisConnectionString = null,
-		string redisInstanceName = "TemplatesCore:")
+	internal static IServiceCollection AddKeycloakAuthenticationCaching(this IServiceCollection services, IConfiguration configuration, string? redisConnectionString = null, string redisInstanceName = "TemplatesCore:")
 	{
 		ArgumentNullException.ThrowIfNull(services);
 		ArgumentNullException.ThrowIfNull(configuration);

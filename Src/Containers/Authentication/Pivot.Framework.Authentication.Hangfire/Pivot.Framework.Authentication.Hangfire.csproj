@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+    <PackageId>Pivot.Framework.Authentication.Hangfire</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Gihed Annabi</Authors>
+    <Company>Pivot Software</Company>
+    <Copyright>Copyright © 2026 Gihed Annabi</Copyright>
+    <RepositoryUrl>https://github.com/AnnabiGihed/Pivot.Framework</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/AnnabiGihed/Pivot.Framework</PackageProjectUrl>
+    <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
+    <PackageTags>hangfire;keycloak;authentication;oidc;dashboard;aspnetcore</PackageTags>
+    <Description>
+      Keycloak browser-based authentication for the Hangfire dashboard.
+      Registers a dedicated Cookie + OIDC scheme so the /hangfire dashboard
+      can be accessed directly from a browser via a Keycloak login redirect —
+      no Bearer token required. Provides AddHangfireKeycloakBrowserAuth() and
+      UseHangfireDashboardWithKeycloakAuth() as drop-in replacements for the
+      standard Hangfire dashboard setup.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Infrastructure\Pivot.Framework.Infrastructure.Scheduling\Pivot.Framework.Infrastructure.Scheduling.csproj" />
+    <ProjectReference Include="..\Pivot.Framework.Authentication\Pivot.Framework.Authentication.csproj" />
+  </ItemGroup>
+
+</Project>

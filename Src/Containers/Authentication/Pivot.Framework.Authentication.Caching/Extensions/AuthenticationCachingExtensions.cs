@@ -16,23 +16,27 @@ namespace Pivot.Framework.Authentication.Caching.Extensions;
 /// <summary>
 /// Author      : Gihed Annabi
 /// Date        : 02-2026
-/// Purpose     : Extension methods that compose Redis caching infrastructure with Keycloak JWT
-///              authentication domain services into a single registration call for ASP.NET Core APIs.
+/// Purpose     : INTERNAL — Redis caching infrastructure + Keycloak JWT registration.
+///              Do not call from application code.
+///              Public surface is <see cref="KeycloakAuthenticationCachingOptionsExtensions.WithRedisTokenCaching"/>.
 /// </summary>
-public static class AuthenticationCachingExtensions
+internal static class AuthenticationCachingExtensions
 {
-	#region Public Methods
 	/// <summary>
-	/// Composite one-liner that registers:
+	/// Composite registration that wires:
 	/// <list type="bullet">
-	///   <item>Redis <see cref="ICacheService"/> via <see cref="RedisCachingExtensions.AddRedisCache"/></item>
-	///   <item><see cref="IDistributedTokenCache"/> and <see cref="ITokenRevocationCache"/> with their Redis implementations</item>
+	///   <item>Redis <see cref="ICacheService"/></item>
+	///   <item><see cref="IDistributedTokenCache"/> and <see cref="ITokenRevocationCache"/></item>
 	///   <item><see cref="KeycloakRedisJwtEvents"/> wired into the JWT bearer pipeline</item>
 	///   <item>Keycloak JWT bearer authentication and authorization</item>
 	///   <item><see cref="ICurrentUser"/> / <see cref="CurrentUser"/> scoped service</item>
 	/// </list>
 	/// </summary>
-	public static IServiceCollection AddKeycloakAuthenticationCaching(this IServiceCollection services, IConfiguration configuration, string? redisConnectionString = null, string redisInstanceName = "TemplatesCore:")
+	internal static IServiceCollection AddKeycloakAuthenticationCaching(
+		this IServiceCollection services,
+		IConfiguration configuration,
+		string? redisConnectionString = null,
+		string redisInstanceName = "TemplatesCore:")
 	{
 		ArgumentNullException.ThrowIfNull(services);
 		ArgumentNullException.ThrowIfNull(configuration);
@@ -64,7 +68,8 @@ public static class AuthenticationCachingExtensions
 		services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 			.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, jwt =>
 			{
-				var keycloak = configuration.GetSection(KeycloakOptions.SectionName)
+				var keycloak = configuration
+					.GetSection(KeycloakOptions.SectionName)
 					.Get<KeycloakOptions>()!;
 
 				keycloak.Validate();
@@ -94,5 +99,4 @@ public static class AuthenticationCachingExtensions
 
 		return services;
 	}
-	#endregion
 }

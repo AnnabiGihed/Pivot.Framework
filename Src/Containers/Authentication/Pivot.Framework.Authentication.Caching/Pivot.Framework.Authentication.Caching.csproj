@@ -33,6 +33,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Infrastructure\Pivot.Framework.Infrastructure.Caching\Pivot.Framework.Infrastructure.Caching.csproj" />
+    <ProjectReference Include="..\Pivot.Framework.Authentication.API\Pivot.Framework.Authentication.AspNetCore.csproj" />
     <ProjectReference Include="..\Pivot.Framework.Authentication\Pivot.Framework.Authentication.csproj" />
   </ItemGroup>
 </Project>

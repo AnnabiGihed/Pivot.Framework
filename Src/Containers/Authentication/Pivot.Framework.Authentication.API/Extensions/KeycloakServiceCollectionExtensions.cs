@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Pivot.Framework.Authentication.Models;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Pivot.Framework.Authentication.AspNetCore.Extensions;
@@ -7,26 +6,21 @@ namespace Pivot.Framework.Authentication.AspNetCore.Extensions;
 /// <summary>
 /// Author      : Gihed Annabi
 /// Date        : 02-2026
-/// Purpose     : Convenience extensions that compose all backend Keycloak registrations.
-///              Registers Keycloak JWT authentication, current user resolution,
-///              and HTTP context access.
+/// Purpose     : INTERNAL — kept for intra-package use only.
+///              Replaced publicly by <see cref="KeycloakAuthenticationExtensions.AddKeycloakAuthentication"/>
+///              with <c>.WithCurrentUser()</c>.
+///              Do not call from application code.
 /// </summary>
-public static class KeycloakServiceCollectionExtensions
+internal static class KeycloakServiceCollectionExtensions
 {
-	#region Public Methods
 	/// <summary>
-	/// Registers:
-	/// - Keycloak JWT authentication (via <see cref="KeycloakAuthenticationExtensions"/>)
-	/// - <see cref="ICurrentUser"/> scoped service
-	/// - <see cref="IHttpContextAccessor"/>
+	/// Registers Keycloak JWT + ICurrentUser + IHttpContextAccessor.
+	/// Use <c>services.AddKeycloakAuthentication(config, o => o.WithCurrentUser())</c> instead.
 	/// </summary>
-	public static IServiceCollection AddKeycloakBackend(this IServiceCollection services, IConfiguration configuration)
+	internal static IServiceCollection AddKeycloakBackend(this IServiceCollection services, IConfiguration configuration)
 	{
-		services.AddHttpContextAccessor();
-		services.AddScoped<ICurrentUser, CurrentUser>();
-		services.AddKeycloakAuthentication(configuration);
-
+		services.RegisterCurrentUser();
+		services.RegisterCoreJwtBearer(configuration);
 		return services;
 	}
-	#endregion
 }

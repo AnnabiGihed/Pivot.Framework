@@ -38,11 +38,7 @@ public sealed class HangfireCookieDashboardAuthorizationFilter : IDashboardAutho
 			return true;
 
 		// No valid cookie — redirect the browser to Keycloak via the OIDC scheme.
-		httpContext.ChallengeAsync(
-			HangfireAuthConstants.OidcScheme,
-			new AuthenticationProperties { RedirectUri = "/hangfire" })
-			.GetAwaiter()
-			.GetResult();
+		httpContext.Response.Redirect("/hangfire-login");
 
 		return false;
 	}

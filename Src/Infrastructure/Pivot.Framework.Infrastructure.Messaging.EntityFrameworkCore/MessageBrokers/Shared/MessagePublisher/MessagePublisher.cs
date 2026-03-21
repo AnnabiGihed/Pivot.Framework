@@ -50,7 +50,7 @@ public class RabbitMQPublisher(IOptions<RabbitMQSettings> options, IMessageSeria
 
 					//var serializedMessage = _serializer.Serialize(message);
 
-					var compressedMessage = _compressor.Compress(Encoding.UTF8.GetBytes(message?.Payload));
+					var compressedMessage = _compressor.Compress(Encoding.UTF8.GetBytes(message?.Payload ?? string.Empty));
 					var encryptedMessage = _encryptor.Encrypt(compressedMessage);
 
 					var properties = new BasicProperties

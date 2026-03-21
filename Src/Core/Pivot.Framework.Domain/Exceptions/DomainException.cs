@@ -3,21 +3,29 @@
 /// <summary>
 /// Author      : Gihed Annabi
 /// Date        : 01-2026
+/// Modified    : 03-2026 — Changed base class from <see cref="ArgumentException"/> to <see cref="Exception"/>.
+///              Domain validation failures are not argument errors; they represent business rule violations.
 /// Purpose     : Base exception type for domain validation failures.
-///              Inherits from <see cref="ArgumentException"/> to preserve parameter metadata.
+///              Carries the parameter name that triggered the violation as a first-class property.
 /// </summary>
-public abstract class DomainException : ArgumentException
+public abstract class DomainException : Exception
 {
+	/// <summary>
+	/// Gets the name of the parameter that caused the domain validation failure.
+	/// </summary>
+	public string ParameterName { get; }
+
 	/// <summary>
 	/// Initializes a new instance of the <see cref="DomainException"/> class.
 	/// </summary>
 	/// <param name="parameterName">The name of the parameter that caused the exception.</param>
 	/// <param name="message">The exception message.</param>
 	protected DomainException(string parameterName, string message)
-		: base(message, parameterName)
+		: base(message)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(parameterName);
 		ArgumentNullException.ThrowIfNull(message);
+		ParameterName = parameterName;
 	}
 
 	/// <summary>
@@ -27,10 +35,11 @@ public abstract class DomainException : ArgumentException
 	/// <param name="message">The exception message.</param>
 	/// <param name="innerException">The inner exception.</param>
 	protected DomainException(string parameterName, string message, Exception innerException)
-		: base(message, parameterName, innerException)
+		: base(message, innerException)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(parameterName);
 		ArgumentNullException.ThrowIfNull(message);
 		ArgumentNullException.ThrowIfNull(innerException);
+		ParameterName = parameterName;
 	}
 }

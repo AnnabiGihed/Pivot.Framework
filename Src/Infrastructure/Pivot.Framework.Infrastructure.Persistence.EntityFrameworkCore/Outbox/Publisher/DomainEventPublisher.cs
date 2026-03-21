@@ -22,6 +22,7 @@ public sealed class DomainEventPublisher<TContext> : IDomainEventPublisher
 {
 	private static readonly JsonSerializerSettings SerializerSettings = new()
 	{
+		TypeNameHandling = TypeNameHandling.None,
 		ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
 		Formatting = Formatting.None,
 		StringEscapeHandling = StringEscapeHandling.Default

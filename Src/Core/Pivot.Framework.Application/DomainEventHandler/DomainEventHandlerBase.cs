@@ -1,10 +1,22 @@
-﻿using Pivot.Framework.Domain.Shared;
+using Pivot.Framework.Domain.Shared;
 using Pivot.Framework.Domain.Primitives;
 using Pivot.Framework.Application.Abstractions.Messaging.Events;
 
 namespace Pivot.Framework.Application.DomainEventHandler;
 
-public abstract class DomainEventHandlerBase<TEvent> : IDomainEventHandler<TEvent> where TEvent : IDomainEvent
+/// <summary>
+/// Author      : Gihed Annabi
+/// Date        : 01-2026
+/// Modified    : 03-2026 — Updated to handle <see cref="DomainEventNotification{TEvent}"/>
+///              instead of raw <typeparamref name="TEvent"/>, keeping the handler surface clean
+///              for subclasses via <see cref="HandleWithResultAsync"/>.
+/// Purpose     : Convenience base class for domain event handlers.
+///              Subclasses override <see cref="HandleWithResultAsync"/> and never interact
+///              with MediatR types directly.
+/// </summary>
+/// <typeparam name="TEvent">The domain event type.</typeparam>
+public abstract class DomainEventHandlerBase<TEvent> : IDomainEventHandler<TEvent>
+	where TEvent : IDomainEvent
 {
 	/// <summary>
 	/// Handles the domain event with a result.
@@ -15,13 +27,11 @@ public abstract class DomainEventHandlerBase<TEvent> : IDomainEventHandler<TEven
 	public abstract Task<Result> HandleWithResultAsync(TEvent domainEvent, CancellationToken cancellationToken);
 
 	/// <summary>
-	/// Mediator-compatible handler. Forwards to HandleWithResultAsync.
+	/// MediatR entry point. Unwraps the notification and forwards to <see cref="HandleWithResultAsync"/>.
 	/// </summary>
-	/// <param name="notification">The notification.</param>
-	/// <param name="cancellationToken">Cancellation token.</param>
-	/// <returns>A completed Task.</returns>
-	public async Task Handle(TEvent notification, CancellationToken cancellationToken)
+	public async Task Handle(DomainEventNotification<TEvent> notification, CancellationToken cancellationToken)
 	{
-		await HandleWithResultAsync(notification, cancellationToken);
+		ArgumentNullException.ThrowIfNull(notification);
+		await HandleWithResultAsync(notification.DomainEvent, cancellationToken);
 	}
 }

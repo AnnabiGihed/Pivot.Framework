@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Core\Pivot.Framework.Application\Pivot.Framework.Application.csproj" />
     <ProjectReference Include="..\..\Core\Pivot.Framework.Domain\Pivot.Framework.Domain.csproj" />
     <ProjectReference Include="..\Pivot.Framework.Infrastructure.Abstraction\Pivot.Framework.Infrastructure.Abstraction.csproj" />
   </ItemGroup>

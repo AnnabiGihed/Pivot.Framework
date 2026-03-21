@@ -49,9 +49,11 @@ public abstract class AggregateRoot<TId> : Entity<TId>, IAggregateRoot
 
 	/// <summary>
 	/// Clears all stored domain events from this aggregate.
-	/// Called by the infrastructure after events have been successfully dispatched.
+	/// Implemented explicitly so that only infrastructure code casting to <see cref="IAggregateRoot"/>
+	/// can invoke it, preserving atomicity — callers holding a concrete aggregate reference cannot
+	/// accidentally clear events outside the unit-of-work lifecycle.
 	/// </summary>
-	public void ClearDomainEvents()
+	void IAggregateRoot.ClearDomainEvents()
 	{
 		_domainEvents.Clear();
 	}

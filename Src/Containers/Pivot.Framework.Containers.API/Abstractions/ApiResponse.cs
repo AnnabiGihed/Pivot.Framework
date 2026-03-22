@@ -1,4 +1,4 @@
-﻿using Pivot.Framework.Domain.Shared;
+using Pivot.Framework.Domain.Shared;
 
 namespace Pivot.Framework.Containers.API.Abstractions;
 
@@ -15,6 +15,8 @@ namespace Pivot.Framework.Containers.API.Abstractions;
 /// <typeparam name="T">Payload type.</typeparam>
 public sealed class ApiResponse<T>
 {
+	#region Properties
+
 	/// <summary>
 	/// Indicates whether the request was successful.
 	/// </summary>
@@ -35,6 +37,10 @@ public sealed class ApiResponse<T>
 	/// Response payload. Only expected to be populated when <see cref="Success"/> is true.
 	/// </summary>
 	public T? Data { get; init; }
+
+	#endregion
+
+	#region Public Methods
 
 	/// <summary>
 	/// Creates a successful response.
@@ -74,6 +80,10 @@ public sealed class ApiResponse<T>
 		return Fail(result.Error, validationErrors, result.Error.Message);
 	}
 
+	#endregion
+
+	#region Private Helpers
+
 	private static IReadOnlyCollection<Error> NormalizeErrors(Error primary, IEnumerable<Error>? extra)
 	{
 		var list = new List<Error>();
@@ -86,4 +96,6 @@ public sealed class ApiResponse<T>
 
 		return list;
 	}
+
+	#endregion
 }

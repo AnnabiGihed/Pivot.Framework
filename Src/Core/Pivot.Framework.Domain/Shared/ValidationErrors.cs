@@ -1,4 +1,4 @@
-﻿namespace Pivot.Framework.Domain.Shared;
+namespace Pivot.Framework.Domain.Shared;
 
 /// <summary>
 /// Author      : Gihed Annabi
@@ -7,6 +7,13 @@
 /// </summary>
 public static class ValidationErrors
 {
+	#region Static Instances
+
+	/// <summary>
+	/// Gets the default validation error indicating a validation problem occurred.
+	/// </summary>
 	public static readonly Error ValidationError =
 		new("ValidationError", "A validation problem occurred.");
+
+	#endregion
 }

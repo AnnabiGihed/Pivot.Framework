@@ -1,6 +1,6 @@
-﻿
 using Pivot.Framework.Domain;
-using Pivot.Framework.Domain.Exceptions;
+
+namespace Pivot.Framework.Domain.Exceptions;
 
 /// <summary>
 /// Author      : Gihed Annabi
@@ -9,9 +9,13 @@ using Pivot.Framework.Domain.Exceptions;
 /// </summary>
 public sealed class OutOfRangeDomainException : DomainException
 {
+	#region Constructors
+
 	/// <summary>
 	/// Initializes a new instance of the <see cref="OutOfRangeDomainException"/> class.
 	/// </summary>
+	/// <param name="parameterName">The name of the parameter that caused the exception.</param>
+	/// <param name="message">The exception message.</param>
 	public OutOfRangeDomainException(string parameterName, string message)
 		: base(parameterName, message)
 	{
@@ -20,8 +24,11 @@ public sealed class OutOfRangeDomainException : DomainException
 	/// <summary>
 	/// Initializes a new instance of the <see cref="OutOfRangeDomainException"/> class using the default resource message.
 	/// </summary>
+	/// <param name="parameterName">The name of the parameter that caused the exception.</param>
 	public OutOfRangeDomainException(string parameterName)
 		: this(parameterName, Resource.OutOfRange)
 	{
 	}
+
+	#endregion
 }

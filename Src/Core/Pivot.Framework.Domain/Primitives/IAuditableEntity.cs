@@ -15,7 +15,7 @@ public interface IAuditableEntity
 	/// Gets the audit metadata associated with this entity.
 	/// Contains creation and last-modification timestamps and actor identifiers.
 	/// </summary>
-	AuditInfo Audit { get; }
+	AuditInfo? Audit { get; }
 
 	/// <summary>
 	/// Sets the audit metadata.

@@ -80,7 +80,8 @@ public class ValidationPipelineBehaviorTests
 			CancellationToken.None);
 
 		result.IsFailure.Should().BeTrue();
-		result.Should().BeAssignableTo<IValidationResult>();
+		var validationResult = result.Should().BeAssignableTo<IValidationResult>().Subject;
+		validationResult.Errors.Should().Contain(e => e.Code == "Name");
 	}
 
 	/// <summary>
@@ -162,7 +163,9 @@ public class ValidationPipelineBehaviorTests
 			CancellationToken.None);
 
 		result.IsFailure.Should().BeTrue();
-		result.Should().BeAssignableTo<IValidationResult>();
+		var validationResult = result.Should().BeAssignableTo<IValidationResult>().Subject;
+		validationResult.Errors.Should().ContainSingle()
+			.Which.Code.Should().Be("Id");
 	}
 
 	/// <summary>

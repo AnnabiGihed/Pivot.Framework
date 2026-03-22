@@ -45,6 +45,28 @@ public abstract record StronglyTypedGuidId<TSelf> : IStronglyTypedId<TSelf>
 	}
 	#endregion
 
+	#region Equality
+	/// <summary>
+	/// Determines whether this identifier is equal to another of the same concrete type
+	/// by comparing the underlying GUIDs.
+	/// </summary>
+	/// <param name="other">The other identifier to compare against. May be <c>null</c>.</param>
+	/// <returns><c>true</c> when both identifiers have the same underlying GUID; otherwise <c>false</c>.</returns>
+	public bool Equals(TSelf? other)
+	{
+		if (other is null)
+			return false;
+
+		return Value == other.Value;
+	}
+
+	/// <summary>
+	/// Returns a hash code derived from the underlying GUID.
+	/// </summary>
+	/// <returns>A hash code for this identifier.</returns>
+	public override int GetHashCode() => Value.GetHashCode();
+	#endregion
+
 	#region Comparison
 	/// <summary>
 	/// Compares this identifier to another of the same concrete type by comparing the underlying GUIDs.

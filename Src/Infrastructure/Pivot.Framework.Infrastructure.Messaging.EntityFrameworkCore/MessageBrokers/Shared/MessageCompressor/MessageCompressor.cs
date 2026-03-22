@@ -5,6 +5,8 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBr
 
 public class GZipMessageCompressor : IMessageCompressor
 {
+	private const int MaxDecompressedSize = 10 * 1024 * 1024; // 10 MB
+
 	#region IMessageCompressor Implementation
 	public byte[] Compress(byte[] dataToCompress)
 	{
@@ -22,7 +24,17 @@ public class GZipMessageCompressor : IMessageCompressor
 		using var inputStream = new MemoryStream(compressedData);
 		using var decompressionStream = new GZipStream(inputStream, CompressionMode.Decompress);
 		using var resultStream = new MemoryStream();
-		decompressionStream.CopyTo(resultStream);
+
+		var buffer = new byte[8192];
+		int bytesRead;
+		int totalBytes = 0;
+		while ((bytesRead = decompressionStream.Read(buffer, 0, buffer.Length)) > 0)
+		{
+			totalBytes += bytesRead;
+			if (totalBytes > MaxDecompressedSize)
+				throw new InvalidOperationException($"Decompressed data exceeds maximum allowed size of {MaxDecompressedSize} bytes.");
+			resultStream.Write(buffer, 0, bytesRead);
+		}
 		return resultStream.ToArray();
 	}
 	#endregion

@@ -20,7 +20,7 @@ public class AesMessageEncryptor : IMessageEncryptor
 
 		if (_encryptionKey.Length != 32)
 		{
-			throw new ArgumentException("EncryptionKey must be 32 characters long for AES-256 encryption.");
+			throw new ArgumentException("EncryptionKey must be 32 bytes (ASCII characters) long for AES-256 encryption.");
 		}
 	}
 	#endregion

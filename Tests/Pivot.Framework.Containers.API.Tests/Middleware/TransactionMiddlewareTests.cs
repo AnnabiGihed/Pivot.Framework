@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Pivot.Framework.Containers.API.Middleware;
+using Pivot.Framework.Infrastructure.Abstraction.Persistence;
 using Pivot.Framework.Infrastructure.Abstraction.Transaction;
 
 namespace Pivot.Framework.Containers.API.Tests.Middleware;
@@ -165,7 +166,7 @@ public class TransactionMiddlewareTests
 	/// <summary>
 	/// Minimal <see cref="DbContext"/> test double for the transaction middleware tests.
 	/// </summary>
-	public class TestDbContext : DbContext
+	public class TestDbContext : DbContext, IPersistenceContext
 	{
 		/// <summary>
 		/// Initialises a new <see cref="TestDbContext"/> with the specified options.

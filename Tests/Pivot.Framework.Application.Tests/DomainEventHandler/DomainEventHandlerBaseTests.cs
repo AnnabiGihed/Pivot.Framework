@@ -43,7 +43,8 @@ public class DomainEventHandlerBaseTests
 		var domainEvent = new TestDomainEvent("Test message");
 		var notification = new DomainEventNotification<TestDomainEvent>(domainEvent);
 
-		await handler.Handle(notification, CancellationToken.None);
+		IDomainEventHandler<TestDomainEvent> domainEventHandler = handler;
+		await domainEventHandler.Handle(notification, CancellationToken.None);
 
 		handler.ReceivedEvent.Should().Be(domainEvent);
 		handler.ReceivedEvent!.Message.Should().Be("Test message");
@@ -56,10 +57,30 @@ public class DomainEventHandlerBaseTests
 	public async Task Handle_NullNotification_ShouldThrow()
 	{
 		var handler = new TestHandler();
+		IDomainEventHandler<TestDomainEvent> domainEventHandler = handler;
 
-		var act = () => handler.Handle(null!, CancellationToken.None);
+		var act = () => domainEventHandler.Handle(null!, CancellationToken.None);
 
 		await act.Should().ThrowAsync<ArgumentNullException>();
+	}
+
+	/// <summary>
+	/// Verifies that when HandleWithResultAsync returns a failure, the result is propagated.
+	/// </summary>
+	[Fact]
+	public async Task HandleWithResultAsync_WhenFailure_ShouldReturnFailure()
+	{
+		// Arrange
+		var handler = new TestHandler();
+		handler.ResultToReturn = Result.Failure(new Error("ERR", "test failure"));
+		var domainEvent = new TestDomainEvent("Failure event");
+
+		// Act
+		var result = await handler.HandleWithResultAsync(domainEvent, CancellationToken.None);
+
+		// Assert
+		result.IsFailure.Should().BeTrue();
+		result.Error.Code.Should().Be("ERR");
 	}
 
 	/// <summary>

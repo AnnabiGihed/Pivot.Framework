@@ -1,5 +1,4 @@
-﻿namespace Pivot.Framework.Domain.Exceptions;
-
+namespace Pivot.Framework.Domain.Exceptions;
 
 /// <summary>
 /// Author      : Gihed Annabi
@@ -8,9 +7,13 @@
 /// </summary>
 public sealed class AlreadyExistsDomainException : DomainException
 {
+	#region Constructors
+
 	/// <summary>
 	/// Initializes a new instance of the <see cref="AlreadyExistsDomainException"/> class.
 	/// </summary>
+	/// <param name="parameterName">The name of the parameter that caused the exception.</param>
+	/// <param name="message">The exception message.</param>
 	public AlreadyExistsDomainException(string parameterName, string message)
 		: base(parameterName, message)
 	{
@@ -19,8 +22,11 @@ public sealed class AlreadyExistsDomainException : DomainException
 	/// <summary>
 	/// Initializes a new instance of the <see cref="AlreadyExistsDomainException"/> class using the default resource message.
 	/// </summary>
+	/// <param name="parameterName">The name of the parameter that caused the exception.</param>
 	public AlreadyExistsDomainException(string parameterName)
 		: this(parameterName, Resource.AlreadyExists)
 	{
 	}
+
+	#endregion
 }

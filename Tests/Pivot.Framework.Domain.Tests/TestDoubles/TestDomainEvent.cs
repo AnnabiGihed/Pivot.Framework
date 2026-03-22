@@ -28,6 +28,15 @@ public sealed record TestDomainEvent : DomainEvent
 	}
 
 	/// <summary>
+	/// Initialises a new <see cref="TestDomainEvent"/> with explicit id, timestamp, and description.
+	/// Used for record equality tests where deterministic values are needed.
+	/// </summary>
+	public TestDomainEvent(Guid id, DateTime occurredOnUtc, string description) : base(id, occurredOnUtc)
+	{
+		Description = description;
+	}
+
+	/// <summary>
 	/// Parameterless constructor for serialization and test scenarios.
 	/// </summary>
 	public TestDomainEvent() : base() { }

@@ -94,9 +94,9 @@ public class ResultTTests
 	[Fact]
 	public void Failure_ShouldPreserveExceptionType()
 	{
-		var result = Result.Failure<int>(new Error("ERR", "msg"), ResultExceptionType.Forbidden);
+		var result = Result.Failure<int>(new Error("ERR", "msg"), ResultExceptionType.AccessDenied);
 
-		result.ResultExceptionType.Should().Be(ResultExceptionType.Forbidden);
+		result.ResultExceptionType.Should().Be(ResultExceptionType.AccessDenied);
 	}
 	#endregion
 }

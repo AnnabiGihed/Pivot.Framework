@@ -54,7 +54,7 @@ public class ResultTests
 		result.IsSuccess.Should().BeFalse();
 		result.IsFailure.Should().BeTrue();
 		result.Error.Should().Be(error);
-		result.ResultExceptionType.Should().Be(ResultExceptionType.BadRequest);
+		result.ResultExceptionType.Should().Be(ResultExceptionType.ValidationError);
 	}
 
 	/// <summary>

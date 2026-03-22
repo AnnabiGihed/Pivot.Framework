@@ -1,4 +1,4 @@
-﻿using Pivot.Framework.Domain.Shared;
+using Pivot.Framework.Domain.Shared;
 
 namespace Pivot.Framework.Application.Exceptions;
 
@@ -12,6 +12,19 @@ namespace Pivot.Framework.Application.Exceptions;
 /// </summary>
 public sealed class BadRequestException : Exception
 {
+	#region Properties
+	/// <summary>
+	/// Gets the primary error that triggered the bad request.
+	/// </summary>
+	public Error PrimaryError { get; }
+
+	/// <summary>
+	/// Gets all validation/client errors associated with the bad request.
+	/// </summary>
+	public IReadOnlyCollection<Error> ValidationErrors { get; }
+	#endregion
+
+	#region Constructors
 	/// <summary>
 	/// Initializes a new instance of the <see cref="BadRequestException"/> class from a single error.
 	/// </summary>
@@ -42,17 +55,9 @@ public sealed class BadRequestException : Exception
 
 		ValidationErrors = errors.Length > 0 ? errors : new[] { PrimaryError };
 	}
+	#endregion
 
-	/// <summary>
-	/// Gets the primary error that triggered the bad request.
-	/// </summary>
-	public Error PrimaryError { get; }
-
-	/// <summary>
-	/// Gets all validation/client errors associated with the bad request.
-	/// </summary>
-	public IReadOnlyCollection<Error> ValidationErrors { get; }
-
+	#region Private Helpers
 	private static string BuildMessage(Error error)
 	{
 		ArgumentNullException.ThrowIfNull(error);
@@ -60,4 +65,5 @@ public sealed class BadRequestException : Exception
 		// Prefer the human-readable message; fallback to code.
 		return string.IsNullOrWhiteSpace(error.Message) ? error.Code : error.Message;
 	}
+	#endregion
 }

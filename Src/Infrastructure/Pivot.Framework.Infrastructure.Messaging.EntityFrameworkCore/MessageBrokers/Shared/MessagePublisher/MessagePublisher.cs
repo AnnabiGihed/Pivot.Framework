@@ -1,7 +1,5 @@
-﻿using System.Text;
-using Polly.Retry;
+using System.Text;
 using RabbitMQ.Client;
-using Polly.CircuitBreaker;
 using Microsoft.Extensions.Options;
 using Pivot.Framework.Domain.Shared;
 using System.Collections.Concurrent;
@@ -10,21 +8,28 @@ using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.RabbitMQ.Models;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessagePublisher;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessageEncryptor;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessageCompressor;
-using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessageSerializer;
+using Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.Shared.Resilience;
 
 namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.Shared.MessagePublisher;
 
-public class RabbitMQPublisher(IOptions<RabbitMQSettings> options, IMessageSerializer serializer, IMessageCompressor compressor, IMessageEncryptor encryptor, AsyncRetryPolicy retryPolicy, AsyncCircuitBreakerPolicy circuitBreaker) : IMessagePublisher
+public class RabbitMQPublisher(
+	IOptions<RabbitMQSettings> options,
+	IMessageCompressor compressor,
+	IMessageEncryptor encryptor,
+	MessagingResiliencePolicies resiliencePolicies) : IMessagePublisher, IAsyncDisposable
 {
 	#region Properties
 	protected readonly ConcurrentDictionary<string, bool> _declaredQueues = new();
 	protected readonly ConcurrentDictionary<string, bool> _declaredExchanges = new();
 	protected readonly RabbitMQSettings _settings = options.Value ?? throw new ArgumentNullException(nameof(options));
 	protected readonly IMessageEncryptor _encryptor = encryptor ?? throw new ArgumentNullException(nameof(encryptor));
-	protected readonly AsyncRetryPolicy _retryPolicy = retryPolicy ?? throw new ArgumentNullException(nameof(retryPolicy));
 	protected readonly IMessageCompressor _compressor = compressor ?? throw new ArgumentNullException(nameof(compressor));
-	protected readonly IMessageSerializer _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
-	protected readonly AsyncCircuitBreakerPolicy _circuitBreaker = circuitBreaker ?? throw new ArgumentNullException(nameof(circuitBreaker));
+	protected readonly MessagingResiliencePolicies _resiliencePolicies = resiliencePolicies ?? throw new ArgumentNullException(nameof(resiliencePolicies));
+
+	private IConnection? _connection;
+	private IChannel? _channel;
+	private readonly SemaphoreSlim _connectionLock = new(1, 1);
+	private volatile bool _disposed;
 	#endregion
 
 	#region IMessagePublisher Implementation
@@ -36,19 +41,11 @@ public class RabbitMQPublisher(IOptions<RabbitMQSettings> options, IMessageSeria
 		try
 		{
 
-			return await _circuitBreaker.ExecuteAsync(async () =>
+			return await _resiliencePolicies.CircuitBreakerPolicy.ExecuteAsync(async () =>
 			{
-				return await _retryPolicy.ExecuteAsync(async () =>
+				return await _resiliencePolicies.RetryPolicy.ExecuteAsync(async () =>
 				{
-					var result = await EnsureExchangeAndQueueAsync();
-
-					if (result.IsFailure)
-						return result;
-
-					using var connection = await CreateConnectionAsync();
-					using var channel = await connection.CreateChannelAsync();
-
-					//var serializedMessage = _serializer.Serialize(message);
+					await EnsureConnectionAsync();
 
 					var compressedMessage = _compressor.Compress(Encoding.UTF8.GetBytes(message?.Payload ?? string.Empty));
 					var encryptedMessage = _encryptor.Encrypt(compressedMessage);
@@ -65,7 +62,7 @@ public class RabbitMQPublisher(IOptions<RabbitMQSettings> options, IMessageSeria
 						Type = message.EventType // Set the fully qualified type name
 					};
 
-					await channel.BasicPublishAsync(
+					await _channel!.BasicPublishAsync(
 						_settings.Exchange,
 						_settings.RoutingKey,
 						mandatory: true,
@@ -84,52 +81,112 @@ public class RabbitMQPublisher(IOptions<RabbitMQSettings> options, IMessageSeria
 	#endregion
 
 	#region Utilities
-	protected async Task<Result> EnsureExchangeAndQueueAsync()
+	/// <summary>
+	/// Lazily creates and caches the RabbitMQ connection and channel, and ensures
+	/// the exchange and queue are declared. Thread-safe via SemaphoreSlim.
+	/// </summary>
+	private async Task EnsureConnectionAsync()
 	{
+		ObjectDisposedException.ThrowIf(_disposed, this);
+
+		if (_connection is { IsOpen: true } && _channel is { IsOpen: true })
+			return;
+
+		await _connectionLock.WaitAsync();
 		try
 		{
-			using var connection = await CreateConnectionAsync();
-			using var channel = await connection.CreateChannelAsync();
+			// Double-check after acquiring lock
+			if (_connection is { IsOpen: true } && _channel is { IsOpen: true })
+				return;
 
-			if (!_declaredExchanges.ContainsKey(_settings.Exchange))
+			// Clean up stale connection/channel if they exist but are closed
+			if (_channel is not null)
 			{
-				await channel.ExchangeDeclareAsync(_settings.Exchange, ExchangeType.Direct, durable: true);
-				_declaredExchanges.TryAdd(_settings.Exchange, true);
+				try { _channel.Dispose(); } catch { /* best effort */ }
+				_channel = null;
+			}
+			if (_connection is not null)
+			{
+				try { _connection.Dispose(); } catch { /* best effort */ }
+				_connection = null;
 			}
 
-			if (!_declaredQueues.ContainsKey(_settings.Queue))
+			var factory = new ConnectionFactory
 			{
-				await channel.QueueDeclareAsync(_settings.Queue, durable: true, exclusive: false, autoDelete: false, arguments: null);
-				await channel.QueueBindAsync(_settings.Queue, _settings.Exchange, _settings.RoutingKey, arguments: null);
-				_declaredQueues.TryAdd(_settings.Queue, true);
-			}
+				HostName = _settings.HostName,
+				UserName = _settings.UserName,
+				Password = _settings.Password,
+				VirtualHost = _settings.VirtualHost,
+				Port = _settings.Port,
+				ClientProvidedName = _settings.ClientProvidedName,
+			};
 
-			return Result.Success();
+			_connection = await factory.CreateConnectionAsync();
+			_channel = await _connection.CreateChannelAsync();
+
+			// Declare exchange and queue under the connection lock
+			// to avoid race conditions on first use
+			await EnsureExchangeAndQueueDeclaredAsync();
 		}
-		catch (Exception ex)
+		finally
 		{
-			return Result.Failure(new Error("ExchangeQueueDeclarationError", "An error occurred while declaring exchange and queue, with messsage : " + ex.Message));
+			_connectionLock.Release();
 		}
 	}
-	protected async Task<IConnection> CreateConnectionAsync()
-	{
-		var factory = new ConnectionFactory
-		{
-			HostName = _settings.HostName,
-			UserName = _settings.UserName,
-			Password = _settings.Password,
-			VirtualHost = _settings.VirtualHost,
-			Port = _settings.Port,
-			ClientProvidedName = _settings.ClientProvidedName,
-		};
 
-		return await factory.CreateConnectionAsync();
+	/// <summary>
+	/// Declares the exchange and queue if not already declared.
+	/// Must be called under <see cref="_connectionLock"/>.
+	/// </summary>
+	private async Task EnsureExchangeAndQueueDeclaredAsync()
+	{
+		if (_channel is null) return;
+
+		if (!_declaredExchanges.ContainsKey(_settings.Exchange))
+		{
+			await _channel.ExchangeDeclareAsync(_settings.Exchange, ExchangeType.Direct, durable: true);
+			_declaredExchanges.TryAdd(_settings.Exchange, true);
+		}
+
+		if (!_declaredQueues.ContainsKey(_settings.Queue))
+		{
+			await _channel.QueueDeclareAsync(_settings.Queue, durable: true, exclusive: false, autoDelete: false, arguments: null);
+			await _channel.QueueBindAsync(_settings.Queue, _settings.Exchange, _settings.RoutingKey, arguments: null);
+			_declaredQueues.TryAdd(_settings.Queue, true);
+		}
+	}
+	#endregion
+
+	#region IAsyncDisposable Implementation
+	/// <summary>
+	/// Asynchronously closes and disposes the RabbitMQ channel and connection.
+	/// Preferred disposal path that properly awaits the async close operations.
+	/// </summary>
+	public async ValueTask DisposeAsync()
+	{
+		if (_disposed) return;
+		_disposed = true;
+
+		try { if (_channel is not null) await _channel.CloseAsync(); } catch { }
+		try { if (_connection is not null) await _connection.CloseAsync(); } catch { }
+
+		_channel?.Dispose();
+		_connection?.Dispose();
+		_connectionLock?.Dispose();
 	}
 	#endregion
 
 	#region IDisposable Implementation
+	/// <summary>
+	/// Synchronous fallback that blocks on the async close operations.
+	/// Prefer <see cref="DisposeAsync"/> when possible.
+	/// </summary>
 	public void Dispose()
 	{
+		if (_disposed)
+			return;
+
+		DisposeAsync().AsTask().GetAwaiter().GetResult();
 	}
 	#endregion
 }

@@ -1,4 +1,4 @@
-﻿using Pivot.Framework.Domain.Shared;
+using Pivot.Framework.Domain.Shared;
 
 namespace Pivot.Framework.Application.Exceptions;
 
@@ -10,6 +10,19 @@ namespace Pivot.Framework.Application.Exceptions;
 /// </summary>
 public sealed class ValidationException : Exception
 {
+	#region Properties
+	/// <summary>
+	/// Gets the primary validation error that triggered the exception.
+	/// </summary>
+	public Error PrimaryError { get; }
+
+	/// <summary>
+	/// Gets all validation errors associated with the exception.
+	/// </summary>
+	public IReadOnlyCollection<Error> ValidationErrors { get; }
+	#endregion
+
+	#region Constructors
 	/// <summary>
 	/// Initializes a new instance of the <see cref="ValidationException"/> class from a single error.
 	/// </summary>
@@ -39,20 +52,13 @@ public sealed class ValidationException : Exception
 
 		ValidationErrors = errors.Length > 0 ? errors : new[] { PrimaryError };
 	}
+	#endregion
 
-	/// <summary>
-	/// Gets the primary validation error that triggered the exception.
-	/// </summary>
-	public Error PrimaryError { get; }
-
-	/// <summary>
-	/// Gets all validation errors associated with the exception.
-	/// </summary>
-	public IReadOnlyCollection<Error> ValidationErrors { get; }
-
+	#region Private Helpers
 	private static string BuildMessage(Error error)
 	{
 		ArgumentNullException.ThrowIfNull(error);
 		return string.IsNullOrWhiteSpace(error.Message) ? error.Code : error.Message;
 	}
+	#endregion
 }

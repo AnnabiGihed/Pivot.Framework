@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Pivot.Framework.Containers.API.Middleware;
 using Pivot.Framework.Domain.Shared;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.Processor;
+using Pivot.Framework.Infrastructure.Abstraction.Persistence;
 
 namespace Pivot.Framework.Containers.API.Tests.Middleware;
 
@@ -20,7 +21,7 @@ namespace Pivot.Framework.Containers.API.Tests.Middleware;
 public class OutboxProcessingMiddlewareTests
 {
 	#region Test Infrastructure
-	public class TestDbContext : DbContext
+	public class TestDbContext : DbContext, IPersistenceContext
 	{
 		public TestDbContext() : base(new DbContextOptionsBuilder<TestDbContext>()
 			.UseInMemoryDatabase(Guid.NewGuid().ToString()).Options) { }

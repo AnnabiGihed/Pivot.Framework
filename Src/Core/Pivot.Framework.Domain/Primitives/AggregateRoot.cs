@@ -6,15 +6,19 @@
 /// Purpose     : Base class for aggregate roots in a Domain-Driven Design model.
 ///              An aggregate root is the consistency boundary of a domain cluster.
 ///              It collects and exposes domain events raised during state transitions,
-///              and inherits auditing and soft-delete behaviour from <see cref="Entity{TId}"/>.
+///              and inherits auditing and soft-delete behaviour from <see cref="FullEntity{TId}"/>.
+///              For aggregates that do not need soft-delete, use <see cref="LightweightAggregateRoot{TId}"/>.
+///              For aggregates that need audit but not soft-delete, use <see cref="AuditableAggregateRoot{TId}"/>.
 /// </summary>
 /// <typeparam name="TId">The strongly-typed identifier of the aggregate root.</typeparam>
-public abstract class AggregateRoot<TId> : Entity<TId>, IAggregateRoot
+public abstract class AggregateRoot<TId> : FullEntity<TId>, IAggregateRoot
 	where TId : IStronglyTypedId<TId>
 {
 	#region Fields
 	/// <summary>
 	/// Internal store of domain events raised during this aggregate's lifecycle.
+	/// Not thread-safe by design — aggregates are consistency boundaries
+	/// and must be accessed from a single thread/unit of work at a time.
 	/// </summary>
 	private readonly List<IDomainEvent> _domainEvents = new();
 	#endregion
@@ -73,7 +77,7 @@ public abstract class AggregateRoot<TId> : Entity<TId>, IAggregateRoot
 	#region Domain Behaviours
 	/// <summary>
 	/// Soft-deletes this aggregate root.
-	/// Delegates to the protected <see cref="Entity{TId}.SoftDelete"/> method.
+	/// Delegates to the protected <see cref="FullEntity{TId}.SoftDelete"/> method.
 	/// </summary>
 	/// <param name="deletedOnUtc">UTC timestamp of deletion.</param>
 	/// <param name="deletedBy">Actor who performed the deletion.</param>
@@ -84,7 +88,7 @@ public abstract class AggregateRoot<TId> : Entity<TId>, IAggregateRoot
 
 	/// <summary>
 	/// Restores a previously soft-deleted aggregate root.
-	/// Delegates to the protected <see cref="Entity{TId}.Restore"/> method.
+	/// Delegates to the protected <see cref="FullEntity{TId}.Restore"/> method.
 	/// </summary>
 	/// <param name="restoredOnUtc">UTC timestamp of restoration.</param>
 	/// <param name="restoredBy">Actor who performed the restoration.</param>

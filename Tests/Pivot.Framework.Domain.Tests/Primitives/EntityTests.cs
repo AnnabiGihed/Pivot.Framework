@@ -305,7 +305,7 @@ public class EntityTests
 
 		var act = () => entity.PerformSoftDelete(DateTime.UtcNow, "");
 
-		act.Should().Throw<ArgumentNullException>();
+		act.Should().Throw<ArgumentException>();
 	}
 
 	/// <summary>
@@ -393,6 +393,52 @@ public class EntityTests
 		((ISoftDeletableEntity)entity).MarkRestored(now.AddMinutes(5), "admin");
 
 		entity.IsDeleted.Should().BeFalse();
+	}
+	#endregion
+
+	#region Restore Validation Guard Tests
+	/// <summary>
+	/// Verifies that Restore with non-UTC date throws.
+	/// </summary>
+	[Fact]
+	public void Restore_WithNonUtcDate_ShouldThrow()
+	{
+		var entity = new TestEntity(TestId.New(), "Test");
+		entity.PerformSoftDelete(DateTime.UtcNow, "admin");
+
+		var act = () => entity.PerformRestore(DateTime.Now, "admin");
+
+		act.Should().Throw<ArgumentException>();
+	}
+
+	/// <summary>
+	/// Verifies that Restore with empty actor throws.
+	/// </summary>
+	[Fact]
+	public void Restore_WithEmptyActor_ShouldThrow()
+	{
+		var entity = new TestEntity(TestId.New(), "Test");
+		entity.PerformSoftDelete(DateTime.UtcNow, "admin");
+
+		var act = () => entity.PerformRestore(DateTime.UtcNow, "");
+
+		act.Should().Throw<ArgumentException>();
+	}
+
+	/// <summary>
+	/// Verifies that Restore updates audit modification when audit is initialized.
+	/// </summary>
+	[Fact]
+	public void Restore_WithAudit_ShouldUpdateModification()
+	{
+		var entity = new TestEntity(TestId.New(), "Test");
+		entity.PerformInitializeAudit(DateTime.UtcNow, "creator");
+		entity.PerformSoftDelete(DateTime.UtcNow.AddMinutes(1), "admin");
+
+		var restoreTime = DateTime.UtcNow.AddMinutes(2);
+		entity.PerformRestore(restoreTime, "restorer");
+
+		entity.Audit.ModifiedBy.Should().Be("restorer");
 	}
 	#endregion
 

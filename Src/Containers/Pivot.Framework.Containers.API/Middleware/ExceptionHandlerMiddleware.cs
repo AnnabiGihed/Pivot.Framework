@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
@@ -17,10 +17,36 @@ namespace Pivot.Framework.Containers.API.Middleware;
 /// </summary>
 public sealed class ExceptionHandlerMiddleware
 {
+	#region Fields
+
+	/// <summary>
+	/// The next middleware in the ASP.NET Core pipeline.
+	/// </summary>
 	private readonly RequestDelegate _next;
+
+	/// <summary>
+	/// Logger for diagnostic output.
+	/// </summary>
 	private readonly ILogger<ExceptionHandlerMiddleware> _logger;
+
+	/// <summary>
+	/// Hosting environment used to control detail exposure in responses.
+	/// </summary>
 	private readonly IHostEnvironment _environment;
 
+	#endregion
+
+	#region Constructors
+
+	/// <summary>
+	/// Initialises a new <see cref="ExceptionHandlerMiddleware"/> with the provided dependencies.
+	/// </summary>
+	/// <param name="next">The next middleware delegate. Must not be null.</param>
+	/// <param name="logger">The logger instance. Must not be null.</param>
+	/// <param name="environment">The hosting environment. Must not be null.</param>
+	/// <exception cref="ArgumentNullException">
+	/// Thrown when <paramref name="next"/>, <paramref name="logger"/>, or <paramref name="environment"/> is null.
+	/// </exception>
 	public ExceptionHandlerMiddleware(
 		RequestDelegate next,
 		ILogger<ExceptionHandlerMiddleware> logger,
@@ -31,6 +57,15 @@ public sealed class ExceptionHandlerMiddleware
 		_environment = environment ?? throw new ArgumentNullException(nameof(environment));
 	}
 
+	#endregion
+
+	#region Public Methods
+
+	/// <summary>
+	/// Invokes the middleware. Catches unhandled exceptions and writes a
+	/// <see cref="ProblemDetails"/> JSON response.
+	/// </summary>
+	/// <param name="httpContext">The HTTP context for the current request.</param>
 	public async Task InvokeAsync(HttpContext httpContext)
 	{
 		try
@@ -42,6 +77,10 @@ public sealed class ExceptionHandlerMiddleware
 			await HandleExceptionAsync(httpContext, ex);
 		}
 	}
+
+	#endregion
+
+	#region Private Helpers
 
 	private async Task HandleExceptionAsync(HttpContext httpContext, Exception ex)
 	{
@@ -132,4 +171,6 @@ public sealed class ExceptionHandlerMiddleware
 		// In non-production: provide more context for debugging.
 		return ex.ToString();
 	}
+
+	#endregion
 }

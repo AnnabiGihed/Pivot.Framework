@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Pivot.Framework.Domain.Shared;
@@ -6,6 +6,7 @@ using Pivot.Framework.Domain.Primitives;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.DomainEventPublisher;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.Models;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.Repositories;
+using Pivot.Framework.Infrastructure.Abstraction.Persistence;
 
 namespace Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Publisher;
 
@@ -18,8 +19,12 @@ namespace Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Outbox.
 /// </summary>
 /// <typeparam name="TContext">EF Core DbContext type that stores the outbox table.</typeparam>
 public sealed class DomainEventPublisher<TContext> : IDomainEventPublisher
-	where TContext : DbContext
+	where TContext : DbContext, IPersistenceContext
 {
+	#region Fields
+	/// <summary>
+	/// JSON serialization settings used to serialize domain events into the outbox payload.
+	/// </summary>
 	private static readonly JsonSerializerSettings SerializerSettings = new()
 	{
 		TypeNameHandling = TypeNameHandling.None,
@@ -28,9 +33,26 @@ public sealed class DomainEventPublisher<TContext> : IDomainEventPublisher
 		StringEscapeHandling = StringEscapeHandling.Default
 	};
 
+	/// <summary>
+	/// The outbox repository used to persist serialized domain event messages.
+	/// </summary>
 	private readonly IOutboxRepository<TContext> _outboxRepository;
-	private readonly ILogger<DomainEventPublisher<TContext>> _logger;
 
+	/// <summary>
+	/// Logger for diagnostic tracing of domain event publishing operations.
+	/// </summary>
+	private readonly ILogger<DomainEventPublisher<TContext>> _logger;
+	#endregion
+
+	#region Constructors
+	/// <summary>
+	/// Initialises a new <see cref="DomainEventPublisher{TContext}"/> with the provided dependencies.
+	/// </summary>
+	/// <param name="outboxRepository">The outbox repository for persisting messages. Must not be null.</param>
+	/// <param name="logger">The logger instance. Must not be null.</param>
+	/// <exception cref="ArgumentNullException">
+	/// Thrown when <paramref name="outboxRepository"/> or <paramref name="logger"/> is null.
+	/// </exception>
 	public DomainEventPublisher(
 		IOutboxRepository<TContext> outboxRepository,
 		ILogger<DomainEventPublisher<TContext>> logger)
@@ -38,10 +60,15 @@ public sealed class DomainEventPublisher<TContext> : IDomainEventPublisher
 		_outboxRepository = outboxRepository ?? throw new ArgumentNullException(nameof(outboxRepository));
 		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 	}
+	#endregion
 
+	#region Public Methods
 	/// <summary>
 	/// Serializes a domain event and stores it in the outbox within the current transaction.
 	/// </summary>
+	/// <param name="domainEvent">The domain event to persist. Must not be null.</param>
+	/// <param name="cancellationToken">Token to observe for cooperative cancellation.</param>
+	/// <returns>A <see cref="Result"/> indicating success or failure.</returns>
 	public async Task<Result> PublishAsync(IDomainEvent domainEvent, CancellationToken cancellationToken)
 	{
 		try
@@ -74,4 +101,5 @@ public sealed class DomainEventPublisher<TContext> : IDomainEventPublisher
 			return Result.Failure(new Error("DomainEventPublishError", $"Error while publishing domain event: {ex.Message}"));
 		}
 	}
+	#endregion
 }

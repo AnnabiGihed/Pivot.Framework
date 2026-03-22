@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using Pivot.Framework.Domain.Primitives;
 
 namespace Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Specifications;
@@ -22,11 +22,26 @@ public abstract class EntitySpecification<TEntity, TId>
 	where TEntity : Entity<TId>
 	where TId : IStronglyTypedId<TId>
 {
+	#region Fields
+	/// <summary>
+	/// Backing store for include expressions.
+	/// </summary>
+	private readonly List<Expression<Func<TEntity, object>>> _includeExpressions = new();
+	#endregion
+
+	#region Constructors
+	/// <summary>
+	/// Initialises a new <see cref="EntitySpecification{TEntity,TId}"/> with an optional
+	/// criteria predicate used as the WHERE clause.
+	/// </summary>
+	/// <param name="criteria">An optional filter expression. Pass <c>null</c> for no filtering.</param>
 	protected EntitySpecification(Expression<Func<TEntity, bool>>? criteria = null)
 	{
 		Criteria = criteria;
 	}
+	#endregion
 
+	#region Properties
 	/// <summary>
 	/// Gets the criteria (WHERE clause) of the specification.
 	/// </summary>
@@ -35,7 +50,7 @@ public abstract class EntitySpecification<TEntity, TId>
 	/// <summary>
 	/// Gets include expressions to apply.
 	/// </summary>
-	public List<Expression<Func<TEntity, object>>> IncludeExpressions { get; } = new();
+	public IReadOnlyList<Expression<Func<TEntity, object>>> IncludeExpressions => _includeExpressions.AsReadOnly();
 
 	/// <summary>
 	/// Indicates whether EF Core should use split queries (AsSplitQuery).
@@ -73,7 +88,9 @@ public abstract class EntitySpecification<TEntity, TId>
 	/// Paging: number of rows to take.
 	/// </summary>
 	public int? Take { get; private set; }
+	#endregion
 
+	#region Protected Methods
 	/// <summary>
 	/// Enables paging for the specification.
 	/// </summary>
@@ -94,9 +111,7 @@ public abstract class EntitySpecification<TEntity, TId>
 	protected void AddInclude(Expression<Func<TEntity, object>> includeExpression)
 	{
 		ArgumentNullException.ThrowIfNull(includeExpression);
-
-		if (!IncludeExpressions.Contains(includeExpression))
-			IncludeExpressions.Add(includeExpression);
+		_includeExpressions.Add(includeExpression);
 	}
 
 	/// <summary>
@@ -136,4 +151,5 @@ public abstract class EntitySpecification<TEntity, TId>
 	/// Allows querying soft-deleted entities.
 	/// </summary>
 	protected void EnableIncludeSoftDeleted() => IncludeSoftDeleted = true;
+	#endregion
 }

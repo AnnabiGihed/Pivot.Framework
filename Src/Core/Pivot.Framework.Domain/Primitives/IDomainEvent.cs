@@ -18,11 +18,11 @@ public interface IDomainEvent
 	/// Gets the unique identifier of the domain event instance.
 	/// Used for traceability, idempotency, and event correlation.
 	/// </summary>
-	Guid Id { get; init; }
+	Guid Id { get; }
 
 	/// <summary>
 	/// Gets the UTC timestamp indicating when the domain event occurred.
 	/// This value must always be expressed in UTC to ensure consistency across systems.
 	/// </summary>
-	DateTime OccurredOnUtc { get; init; }
+	DateTime OccurredOnUtc { get; }
 }

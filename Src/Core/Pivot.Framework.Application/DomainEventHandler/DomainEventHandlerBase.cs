@@ -18,6 +18,7 @@ namespace Pivot.Framework.Application.DomainEventHandler;
 public abstract class DomainEventHandlerBase<TEvent> : IDomainEventHandler<TEvent>
 	where TEvent : IDomainEvent
 {
+	#region Public Methods
 	/// <summary>
 	/// Handles the domain event with a result.
 	/// </summary>
@@ -25,13 +26,5 @@ public abstract class DomainEventHandlerBase<TEvent> : IDomainEventHandler<TEven
 	/// <param name="cancellationToken">Cancellation token.</param>
 	/// <returns>A result indicating success or failure.</returns>
 	public abstract Task<Result> HandleWithResultAsync(TEvent domainEvent, CancellationToken cancellationToken);
-
-	/// <summary>
-	/// MediatR entry point. Unwraps the notification and forwards to <see cref="HandleWithResultAsync"/>.
-	/// </summary>
-	public async Task Handle(DomainEventNotification<TEvent> notification, CancellationToken cancellationToken)
-	{
-		ArgumentNullException.ThrowIfNull(notification);
-		await HandleWithResultAsync(notification.DomainEvent, cancellationToken);
-	}
+	#endregion
 }

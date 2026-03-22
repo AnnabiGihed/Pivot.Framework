@@ -32,7 +32,7 @@ public class RabbitMQReceiver(
 	ILogger<RabbitMQReceiver> logger,
 	IMessageCompressor messageCompressor,
 	IMessageEncryptor messageEncryptor,
-	IServiceProvider serviceProvider) : IMessageReceiver
+	IServiceProvider serviceProvider) : IMessageReceiver, IAsyncDisposable
 {
 	#region Fields
 	/// <summary>
@@ -78,6 +78,8 @@ public class RabbitMQReceiver(
 	/// Compressor used to decompress incoming message payloads (GZip).
 	/// </summary>
 	protected readonly IMessageCompressor _messageCompressor = messageCompressor ?? throw new ArgumentNullException(nameof(messageCompressor));
+
+	private bool _disposed;
 	#endregion
 
 	#region IMessageReceiver Implementation
@@ -132,7 +134,9 @@ public class RabbitMQReceiver(
 				var messageBytes = _messageCompressor.Decompress(compressedMessage);
 
 				var messagePayload = Encoding.UTF8.GetString(messageBytes);
-				_logger.LogInformation("Message received: {Payload}", messagePayload);
+
+				var eventType = ea.BasicProperties.Type;
+				_logger.LogDebug("Message received. Type: {EventType}, Size: {Size} bytes", eventType, messagePayload?.Length ?? 0);
 
 				var domainEventType = ea.BasicProperties.Type is not null
 					? Type.GetType(ea.BasicProperties.Type)
@@ -141,8 +145,11 @@ public class RabbitMQReceiver(
 
 				if (domainEventType == null)
 				{
-					_logger.LogWarning("Unknown event type: {EventType}", ea.BasicProperties.Type);
-					await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
+					// Reject without requeue — the message will be routed to the dead-letter queue
+					// (if one is configured) or discarded. Requeuing would cause an infinite loop
+					// because the event type will never become resolvable without a code change.
+					_logger.LogWarning("Unknown event type: {EventType}. Rejecting to DLQ.", ea.BasicProperties.Type);
+					await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
 					return;
 				}
 
@@ -150,8 +157,11 @@ public class RabbitMQReceiver(
 
 				if (deserialized is not IDomainEvent domainEvent)
 				{
-					_logger.LogWarning("Deserialized object is not an IDomainEvent: {EventType}", ea.BasicProperties.Type);
-					await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
+					// Reject without requeue — deserialization failures are deterministic and
+					// retrying the same payload will always produce the same result.
+					// The message will be routed to the DLQ if one is configured.
+					_logger.LogWarning("Deserialized object is not an IDomainEvent: {EventType}. Rejecting to DLQ.", ea.BasicProperties.Type);
+					await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
 					return;
 				}
 
@@ -163,8 +173,8 @@ public class RabbitMQReceiver(
 			}
 			catch (Exception ex)
 			{
-				_logger.LogError(ex, "Error processing message. Message will be requeued.");
-				await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
+				_logger.LogError(ex, "Error processing message {EventType}. Nacking without requeue.", ea.BasicProperties.Type);
+				await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
 			}
 		};
 
@@ -198,17 +208,55 @@ public class RabbitMQReceiver(
 	}
 	#endregion
 
+	#region IAsyncDisposable Implementation
+	/// <summary>
+	/// Asynchronously closes and disposes the RabbitMQ channel and connection.
+	/// Preferred disposal path that properly awaits the async close operations.
+	/// </summary>
+	public async ValueTask DisposeAsync()
+	{
+		if (_disposed)
+			return;
+
+		_disposed = true;
+
+		try
+		{
+			if (_channel is not null)
+			{
+				await _channel.CloseAsync();
+				_channel.Dispose();
+				_channel = null;
+			}
+		}
+		catch { /* best effort during disposal */ }
+
+		try
+		{
+			if (_connection is not null)
+			{
+				await _connection.CloseAsync();
+				_connection.Dispose();
+				_connection = null;
+			}
+		}
+		catch { /* best effort during disposal */ }
+
+		GC.SuppressFinalize(this);
+	}
+	#endregion
+
 	#region IDisposable Implementation
 	/// <summary>
-	/// Closes and disposes the RabbitMQ channel and connection.
+	/// Synchronous fallback that blocks on the async close operations.
+	/// Prefer <see cref="DisposeAsync"/> when possible.
 	/// </summary>
 	public void Dispose()
 	{
-		_channel?.CloseAsync();
-		_connection?.CloseAsync();
+		if (_disposed)
+			return;
 
-		_channel?.Dispose();
-		_connection?.Dispose();
+		DisposeAsync().AsTask().GetAwaiter().GetResult();
 	}
 	#endregion
 }

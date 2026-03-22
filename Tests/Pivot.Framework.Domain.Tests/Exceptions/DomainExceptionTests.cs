@@ -53,11 +53,12 @@ public class DomainExceptionTests
 		var inner = new InvalidOperationException("inner failure");
 
 		// Act
-		var ex = new UnknownDomainException("field", "outer message");
+		var ex = new TestDomainException("field", "outer message", inner);
 
 		// Assert
+		ex.InnerException.Should().BeSameAs(inner);
 		ex.ParameterName.Should().Be("field");
-		ex.Message.Should().Be("outer message");
+		ex.Message.Should().Contain("outer message");
 	}
 	#endregion
 

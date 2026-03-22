@@ -23,9 +23,9 @@ public class AuditInfoTests
 		var audit = AuditInfo.Create(now, "admin");
 
 		audit.CreatedBy.Should().Be("admin");
-		audit.ModifiedBy.Should().Be("admin");
+		audit.ModifiedBy.Should().BeNull("a newly created entity has never been modified");
 		audit.CreatedOnUtc.Should().Be(now);
-		audit.ModifiedOnUtc.Should().Be(now);
+		audit.ModifiedOnUtc.Should().BeNull("a newly created entity has never been modified");
 	}
 
 	/// <summary>
@@ -47,7 +47,7 @@ public class AuditInfoTests
 	{
 		var act = () => AuditInfo.Create(DateTime.UtcNow, "   ");
 
-		act.Should().Throw<ArgumentNullException>();
+		act.Should().Throw<ArgumentException>();
 	}
 
 	/// <summary>
@@ -89,18 +89,22 @@ public class AuditInfoTests
 	/// Verifies that <see cref="AuditInfo.Modify"/> updates modification fields.
 	/// </summary>
 	[Fact]
-	public void Modify_ShouldUpdateModificationFields()
+	public void Modify_ShouldReturnNewInstanceWithUpdatedModificationFields()
 	{
 		var created = DateTime.UtcNow;
 		var audit = AuditInfo.Create(created, "admin");
 
 		var modified = created.AddHours(1);
-		audit.Modify(modified, "editor");
+		var result = audit.Modify(modified, "editor");
 
-		audit.ModifiedBy.Should().Be("editor");
-		audit.ModifiedOnUtc.Should().Be(modified);
-		audit.CreatedBy.Should().Be("admin");
-		audit.CreatedOnUtc.Should().Be(created);
+		result.ModifiedBy.Should().Be("editor");
+		result.ModifiedOnUtc.Should().Be(modified);
+		result.CreatedBy.Should().Be("admin");
+		result.CreatedOnUtc.Should().Be(created);
+
+		// Original instance must remain unchanged (immutability)
+		audit.ModifiedBy.Should().BeNull("the original was never modified");
+		audit.ModifiedOnUtc.Should().BeNull("the original was never modified");
 	}
 
 	/// <summary>
@@ -135,18 +139,24 @@ public class AuditInfoTests
 	/// Verifies that <see cref="AuditInfo.Update"/> replaces all fields.
 	/// </summary>
 	[Fact]
-	public void Update_ShouldReplaceAllFields()
+	public void Update_ShouldReturnNewInstanceWithReplacedFields()
 	{
-		var audit = AuditInfo.Create(DateTime.UtcNow, "admin");
+		var now = DateTime.UtcNow;
+		var audit = AuditInfo.Create(now, "admin");
 
 		var newCreated = DateTime.UtcNow.AddDays(-1);
 		var newModified = DateTime.UtcNow;
-		audit.Update("newCreator", "newModifier", newCreated, newModified);
+		var result = audit.Update("newCreator", "newModifier", newCreated, newModified);
 
-		audit.CreatedBy.Should().Be("newCreator");
-		audit.ModifiedBy.Should().Be("newModifier");
-		audit.CreatedOnUtc.Should().Be(newCreated);
-		audit.ModifiedOnUtc.Should().Be(newModified);
+		result.CreatedBy.Should().Be("newCreator");
+		result.ModifiedBy.Should().Be("newModifier");
+		result.CreatedOnUtc.Should().Be(newCreated);
+		result.ModifiedOnUtc.Should().Be(newModified);
+
+		// Original instance must remain unchanged (immutability)
+		audit.CreatedBy.Should().Be("admin");
+		audit.ModifiedBy.Should().BeNull("the original was never modified");
+		audit.CreatedOnUtc.Should().Be(now);
 	}
 
 	/// <summary>

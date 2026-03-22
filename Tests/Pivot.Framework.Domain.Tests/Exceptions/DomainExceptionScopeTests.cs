@@ -46,11 +46,12 @@ public class DomainExceptionScopeTests
 
 	#region Dispose Tests
 	/// <summary>
-	/// Verifies that disposing the scope throws <see cref="AggregateDomainException"/>
-	/// when exceptions have been collected.
+	/// Verifies that disposing the scope clears collected exceptions without throwing.
+	/// Dispose is a cleanup-only operation — callers must explicitly call
+	/// <see cref="DomainExceptionScope.ThrowIfAny"/> to trigger validation.
 	/// </summary>
 	[Fact]
-	public void Dispose_WithExceptions_ShouldThrowAggregateDomainException()
+	public void Dispose_WithExceptions_ShouldNotThrow()
 	{
 		var act = () =>
 		{
@@ -58,7 +59,7 @@ public class DomainExceptionScopeTests
 			scope.AddException(new RequiredDomainException("field"));
 		};
 
-		act.Should().Throw<AggregateDomainException>();
+		act.Should().NotThrow();
 	}
 
 	/// <summary>

@@ -1,4 +1,4 @@
-﻿namespace Pivot.Framework.Domain.Exceptions;
+namespace Pivot.Framework.Domain.Exceptions;
 
 /// <summary>
 /// Author      : Gihed Annabi
@@ -10,10 +10,16 @@
 /// </summary>
 public abstract class DomainException : Exception
 {
+	#region Properties
+
 	/// <summary>
 	/// Gets the name of the parameter that caused the domain validation failure.
 	/// </summary>
 	public string ParameterName { get; }
+
+	#endregion
+
+	#region Constructors
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="DomainException"/> class.
@@ -42,4 +48,6 @@ public abstract class DomainException : Exception
 		ArgumentNullException.ThrowIfNull(innerException);
 		ParameterName = parameterName;
 	}
+
+	#endregion
 }

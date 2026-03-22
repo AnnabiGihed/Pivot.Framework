@@ -17,6 +17,6 @@ public interface IStronglyTypedId
 ///              All identifiers are comparable to enable consistent ordering/sorting.
 /// </summary>
 /// <typeparam name="TSelf">The strongly-typed id type.</typeparam>
-public interface IStronglyTypedId<TSelf> : IStronglyTypedId, IComparable<TSelf>
+public interface IStronglyTypedId<TSelf> : IStronglyTypedId, IComparable<TSelf>, IEquatable<TSelf>
 {
 }

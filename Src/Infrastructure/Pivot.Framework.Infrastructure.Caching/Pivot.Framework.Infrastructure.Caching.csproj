@@ -2,21 +2,10 @@
 
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>latest</LangVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 
     <PackageId>Pivot.Framework.Infrastructure.Caching</PackageId>
     <Version>1.0.0</Version>
-    <Authors>Gihed Annabi</Authors>
-    <Company>Pivot Software</Company>
-    <Copyright>Copyright © 2026 Gihed Annabi</Copyright>
-    <RepositoryUrl>https://github.com/AnnabiGihed/Pivot.Framework</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageProjectUrl>https://github.com/AnnabiGihed/Pivot.Framework</PackageProjectUrl>
-    <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
     <PackageTags>redis;cache;distributed-cache;aspnetcore</PackageTags>
     <Description>
       Pure Redis caching infrastructure for Pivot.Framework applications.

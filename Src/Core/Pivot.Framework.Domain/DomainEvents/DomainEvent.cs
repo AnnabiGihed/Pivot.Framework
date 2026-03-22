@@ -1,4 +1,4 @@
-﻿using Pivot.Framework.Domain.Primitives;
+using Pivot.Framework.Domain.Primitives;
 
 namespace Pivot.Framework.Domain.DomainEvents;
 
@@ -11,6 +11,7 @@ namespace Pivot.Framework.Domain.DomainEvents;
 /// </summary>
 public abstract record DomainEvent : IDomainEvent
 {
+	#region Constructors
 	/// <summary>
 	/// Initializes a new domain event with explicit identifier and occurrence timestamp.
 	/// </summary>
@@ -18,6 +19,11 @@ public abstract record DomainEvent : IDomainEvent
 	/// <param name="occurredOnUtc">UTC timestamp indicating when the event occurred.</param>
 	protected DomainEvent(Guid id, DateTime occurredOnUtc)
 	{
+		if (id == Guid.Empty)
+			throw new ArgumentException("Domain event identifier cannot be Guid.Empty.", nameof(id));
+		if (occurredOnUtc.Kind != DateTimeKind.Utc)
+			throw new ArgumentException("OccurredOnUtc must be expressed in UTC (DateTimeKind.Utc).", nameof(occurredOnUtc));
+
 		Id = id;
 		OccurredOnUtc = occurredOnUtc;
 	}
@@ -29,14 +35,17 @@ public abstract record DomainEvent : IDomainEvent
 		: this(Guid.NewGuid(), DateTime.UtcNow)
 	{
 	}
+	#endregion
 
+	#region Properties
 	/// <summary>
 	/// Gets the unique identifier of the domain event instance.
 	/// </summary>
-	public Guid Id { get; init; }
+	public Guid Id { get; }
 
 	/// <summary>
 	/// Gets the UTC timestamp indicating when the domain event occurred.
 	/// </summary>
-	public DateTime OccurredOnUtc { get; init; }
+	public DateTime OccurredOnUtc { get; }
+	#endregion
 }

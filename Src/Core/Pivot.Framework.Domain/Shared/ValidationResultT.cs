@@ -1,4 +1,4 @@
-﻿using Pivot.Framework.Domain.Shared;
+using Pivot.Framework.Domain.Shared;
 
 namespace Pivot.Framework.Domain.Shared;
 
@@ -11,22 +11,40 @@ namespace Pivot.Framework.Domain.Shared;
 /// <typeparam name="TValue">The result value type.</typeparam>
 public sealed class ValidationResult<TValue> : Result<TValue>, IValidationResult
 {
+	#region Fields
+
 	private readonly IReadOnlyCollection<Error> _errors;
 
+	#endregion
+
+	#region Constructors
+
+	/// <summary>
+	/// Initializes a new instance of the <see cref="ValidationResult{TValue}"/> class.
+	/// </summary>
+	/// <param name="errors">The collection of validation errors.</param>
 	private ValidationResult(IReadOnlyCollection<Error> errors)
 		: base(
 			value: default,
 			isSuccess: false,
 			error: ValidationErrors.ValidationError,
-			resultExceptionType: ResultExceptionType.BadRequest)
+			resultExceptionType: ResultExceptionType.ValidationError)
 	{
 		_errors = errors;
 	}
+
+	#endregion
+
+	#region Properties
 
 	/// <summary>
 	/// Gets the validation errors that caused the failure.
 	/// </summary>
 	public IReadOnlyCollection<Error> Errors => _errors;
+
+	#endregion
+
+	#region Factory Methods
 
 	/// <summary>
 	/// Creates a validation result with the provided errors.
@@ -47,6 +65,10 @@ public sealed class ValidationResult<TValue> : Result<TValue>, IValidationResult
 	/// <summary>
 	/// Convenience overload for array inputs.
 	/// </summary>
+	/// <param name="errors">The validation errors.</param>
+	/// <returns>A failure validation result.</returns>
 	public static ValidationResult<TValue> WithErrors(params Error[] errors)
 		=> WithErrors((IEnumerable<Error>)errors);
+
+	#endregion
 }

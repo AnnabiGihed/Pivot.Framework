@@ -77,8 +77,8 @@ public class DomainEventTests
 	{
 		var id = Guid.NewGuid();
 		var now = DateTime.UtcNow;
-		var event1 = new TestDomainEvent("test") { Id = id, OccurredOnUtc = now };
-		var event2 = new TestDomainEvent("test") { Id = id, OccurredOnUtc = now };
+		var event1 = new TestDomainEvent(id, now, "test");
+		var event2 = new TestDomainEvent(id, now, "test");
 
 		event1.Should().Be(event2);
 	}

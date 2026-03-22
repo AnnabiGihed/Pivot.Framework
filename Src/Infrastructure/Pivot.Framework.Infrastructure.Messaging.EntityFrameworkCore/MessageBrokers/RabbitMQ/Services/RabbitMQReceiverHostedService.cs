@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessageReceiver;
 
@@ -7,8 +7,7 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBr
 public class RabbitMQReceiverHostedService : BackgroundService
 {
 	#region Properties
-	protected bool _isListening = false;
-	protected readonly object _lock = new();
+	protected volatile bool _isListening;
 	protected readonly IMessageReceiver _messageReceiver;
 	protected readonly IHostApplicationLifetime _applicationLifetime;
 	protected readonly ILogger<RabbitMQReceiverHostedService> _logger;
@@ -27,49 +26,43 @@ public class RabbitMQReceiverHostedService : BackgroundService
 	public override async Task StopAsync(CancellationToken stoppingToken)
 	{
 		_logger.LogInformation("Stopping RabbitMQ receiver...");
-		lock (_lock)
-		{
-			_isListening = false;
-		}
+		_isListening = false;
 		_messageReceiver.Dispose();
 		await base.StopAsync(stoppingToken);
 	}
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
-		_applicationLifetime.ApplicationStarted.Register(() =>
+		// Wait for application startup
+		var tcs = new TaskCompletionSource();
+		_applicationLifetime.ApplicationStarted.Register(() => tcs.SetResult());
+		await tcs.Task;
+
+		if (_isListening)
 		{
-			_logger.LogInformation("Application started. Preparing to initialize RabbitMQ receiver...");
+			_logger.LogInformation("RabbitMQ receiver is already started. Skipping initialization.");
+			return;
+		}
 
-			lock (_lock)
-			{
-				if (_isListening)
-				{
-					_logger.LogInformation("RabbitMQ receiver is already started. Skipping initialization.");
-					return;
-				}
+		try
+		{
+			_logger.LogInformation("Initializing RabbitMQ receiver...");
+			await _messageReceiver.InitializeAsync();
+			await _messageReceiver.StartListeningAsync();
+			_isListening = true;
+			_logger.LogInformation("RabbitMQ receiver started successfully.");
 
-				_isListening = true; // Mark as started
-			}
-
-			Task.Run(async () =>
-			{
-				try
-				{
-					_logger.LogInformation("Initializing RabbitMQ receiver...");
-					await _messageReceiver.InitializeAsync();
-					await _messageReceiver.StartListeningAsync();
-					_logger.LogInformation("RabbitMQ receiver is now listening.");
-				}
-				catch (Exception ex)
-				{
-					_logger.LogError(ex, "Failed to start RabbitMQ receiver.");
-					lock (_lock)
-					{
-						_isListening = false; // Reset the flag if initialization fails
-					}
-				}
-			});
-		});
+			// Keep running until stopped
+			await Task.Delay(Timeout.Infinite, stoppingToken);
+		}
+		catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+		{
+			// Normal shutdown
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Failed to start RabbitMQ receiver.");
+			_isListening = false;
+		}
 	}
 	#endregion
 }

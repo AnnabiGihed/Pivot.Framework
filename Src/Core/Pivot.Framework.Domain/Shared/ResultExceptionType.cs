@@ -1,4 +1,4 @@
-﻿namespace Pivot.Framework.Domain.Shared;
+namespace Pivot.Framework.Domain.Shared;
 
 /// <summary>
 /// Author      : Gihed Annabi
@@ -14,27 +14,27 @@ public enum ResultExceptionType
 	None = 0,
 
 	/// <summary>
-	/// Client sent invalid data (HTTP 400).
+	/// Client provided invalid or malformed data.
 	/// </summary>
-	BadRequest = 1,
+	ValidationError = 1,
 
 	/// <summary>
-	/// Resource not found (HTTP 404).
+	/// The requested resource was not found.
 	/// </summary>
 	NotFound = 2,
 
 	/// <summary>
-	/// Resource already exists / concurrency conflict (HTTP 409).
+	/// A conflicting operation was detected (e.g., concurrency or duplicate).
 	/// </summary>
 	Conflict = 3,
 
 	/// <summary>
-	/// Authentication required/failed (HTTP 401).
+	/// Authentication is required or has failed.
 	/// </summary>
-	Unauthorized = 4,
+	AuthenticationRequired = 4,
 
 	/// <summary>
-	/// Authenticated but not allowed (HTTP 403).
+	/// The caller does not have sufficient permissions.
 	/// </summary>
-	Forbidden = 5
+	AccessDenied = 5
 }

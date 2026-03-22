@@ -12,5 +12,12 @@ public class JsonMessageSerializer : IMessageSerializer
 		if (message == null) throw new ArgumentNullException(nameof(message));
 		return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
 	}
+
+	public T Deserialize<T>(byte[] data)
+	{
+		if (data == null || data.Length == 0) throw new ArgumentNullException(nameof(data));
+		return JsonSerializer.Deserialize<T>(Encoding.UTF8.GetString(data))
+			?? throw new InvalidOperationException("Deserialization returned null.");
+	}
 	#endregion
 }

@@ -9,8 +9,8 @@ namespace Pivot.Framework.Domain.Primitives;
 /// Purpose     : Value object that stores creation and last-modification metadata for an entity.
 ///              Tracks who created or last modified a record and when.
 ///              Mapped as an EF Core owned type — persisted inline with the owning entity row.
-///              Mutation is allowed only through the controlled <see cref="Modify"/> and
-///              <see cref="Update"/> methods; no public setters are exposed.
+///              This is an immutable value object. <see cref="Modify"/> and <see cref="Update"/>
+///              return new instances; no public setters are exposed.
 /// </summary>
 public sealed class AuditInfo : ValueObject<AuditInfo>
 {
@@ -50,13 +50,13 @@ public sealed class AuditInfo : ValueObject<AuditInfo>
 	/// Validates all parameters before assigning properties.
 	/// </summary>
 	/// <param name="createdBy">Actor who created the entity.</param>
-	/// <param name="modifiedBy">Actor who last modified the entity.</param>
+	/// <param name="modifiedBy">Actor who last modified the entity, or <c>null</c> if never modified.</param>
 	/// <param name="createdOnUtc">UTC creation timestamp.</param>
 	/// <param name="modifiedOnUtc">UTC last-modification timestamp, or <c>null</c> if never modified.</param>
-	/// <exception cref="ArgumentNullException">Thrown when <paramref name="createdBy"/> or <paramref name="modifiedBy"/> is null or whitespace.</exception>
-	/// <exception cref="ArgumentException">Thrown when <paramref name="createdOnUtc"/> is not a valid UTC date.</exception>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="createdBy"/> is null.</exception>
+	/// <exception cref="ArgumentException">Thrown when <paramref name="createdBy"/> is whitespace or <paramref name="createdOnUtc"/> is not a valid UTC date.</exception>
 	[JsonConstructor]
-	private AuditInfo(string createdBy, string modifiedBy, DateTime createdOnUtc, DateTime? modifiedOnUtc)
+	private AuditInfo(string createdBy, string? modifiedBy, DateTime createdOnUtc, DateTime? modifiedOnUtc)
 	{
 		ValidateUtcDate(createdOnUtc, nameof(createdOnUtc));
 
@@ -66,7 +66,11 @@ public sealed class AuditInfo : ValueObject<AuditInfo>
 		}
 
 		ValidateAuthor(createdBy, nameof(createdBy));
-		ValidateAuthor(modifiedBy, nameof(modifiedBy));
+
+		if (modifiedOnUtc.HasValue)
+		{
+			ValidateAuthor(modifiedBy!, nameof(modifiedBy));
+		}
 
 		CreatedBy = createdBy;
 		ModifiedBy = modifiedBy;
@@ -91,38 +95,41 @@ public sealed class AuditInfo : ValueObject<AuditInfo>
 		ValidateUtcDate(dateUtc, nameof(dateUtc));
 		ValidateAuthor(author, nameof(author));
 
-		return new AuditInfo(author, author, dateUtc, dateUtc);
+		return new AuditInfo(author, null, dateUtc, null);
 	}
 	#endregion
 
 	#region Domain Behaviours
 	/// <summary>
-	/// Updates <see cref="ModifiedBy"/> and <see cref="ModifiedOnUtc"/> to reflect a modification.
+	/// Returns a new <see cref="AuditInfo"/> with updated modification fields,
+	/// preserving the original creation metadata. The current instance is not mutated.
 	/// </summary>
 	/// <param name="dateUtc">UTC timestamp of the modification.</param>
 	/// <param name="author">Actor who performed the modification.</param>
+	/// <returns>A new <see cref="AuditInfo"/> instance with the updated modification metadata.</returns>
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="author"/> is null or whitespace.</exception>
 	/// <exception cref="ArgumentException">Thrown when <paramref name="dateUtc"/> is not a valid UTC date.</exception>
-	public void Modify(DateTime dateUtc, string author)
+	public AuditInfo Modify(DateTime dateUtc, string author)
 	{
 		ValidateUtcDate(dateUtc, nameof(dateUtc));
 		ValidateAuthor(author, nameof(author));
 
-		ModifiedBy = author;
-		ModifiedOnUtc = dateUtc;
+		return new AuditInfo(CreatedBy!, author, CreatedOnUtc, dateUtc);
 	}
 
 	/// <summary>
-	/// Replaces all four audit fields at once.
+	/// Returns a new <see cref="AuditInfo"/> with all four audit fields replaced.
 	/// Intended for migrations or administrative corrections — use <see cref="Modify"/> for routine updates.
+	/// The current instance is not mutated.
 	/// </summary>
 	/// <param name="createdBy">New creation actor.</param>
 	/// <param name="modifiedBy">New modification actor.</param>
 	/// <param name="createdOnUtc">New creation timestamp (UTC).</param>
 	/// <param name="modifiedOnUtc">New last-modification timestamp (UTC).</param>
+	/// <returns>A new <see cref="AuditInfo"/> instance with the replaced fields.</returns>
 	/// <exception cref="ArgumentNullException">Thrown when any actor string is null or whitespace.</exception>
 	/// <exception cref="ArgumentException">Thrown when any timestamp is not a valid UTC date.</exception>
-	public void Update(string createdBy, string modifiedBy, DateTime createdOnUtc, DateTime modifiedOnUtc)
+	public AuditInfo Update(string createdBy, string modifiedBy, DateTime createdOnUtc, DateTime modifiedOnUtc)
 	{
 		ValidateUtcDate(createdOnUtc, nameof(createdOnUtc));
 		ValidateUtcDate(modifiedOnUtc, nameof(modifiedOnUtc));
@@ -130,10 +137,7 @@ public sealed class AuditInfo : ValueObject<AuditInfo>
 		ValidateAuthor(createdBy, nameof(createdBy));
 		ValidateAuthor(modifiedBy, nameof(modifiedBy));
 
-		CreatedBy = createdBy;
-		ModifiedBy = modifiedBy;
-		CreatedOnUtc = createdOnUtc;
-		ModifiedOnUtc = modifiedOnUtc;
+		return new AuditInfo(createdBy, modifiedBy, createdOnUtc, modifiedOnUtc);
 	}
 	#endregion
 
@@ -172,11 +176,14 @@ public sealed class AuditInfo : ValueObject<AuditInfo>
 	/// </summary>
 	/// <param name="author">The actor value to validate.</param>
 	/// <param name="paramName">Parameter name used in the exception message.</param>
-	/// <exception cref="ArgumentNullException">Thrown when the actor is null or whitespace.</exception>
+	/// <exception cref="ArgumentNullException">Thrown when the actor is null.</exception>
+	/// <exception cref="ArgumentException">Thrown when the actor is empty or whitespace.</exception>
 	private static void ValidateAuthor(string author, string paramName)
 	{
+		ArgumentNullException.ThrowIfNull(author, paramName);
+
 		if (string.IsNullOrWhiteSpace(author))
-			throw new ArgumentNullException(paramName);
+			throw new ArgumentException("Author must not be empty or whitespace.", paramName);
 	}
 
 	/// <summary>

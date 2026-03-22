@@ -1,5 +1,4 @@
-﻿namespace Pivot.Framework.Domain.Shared;
-
+namespace Pivot.Framework.Domain.Shared;
 
 /// <summary>
 /// Author      : Gihed Annabi
@@ -8,16 +7,42 @@
 /// </summary>
 public sealed class ValidationResult : Result, IValidationResult
 {
+	#region Fields
+
 	private readonly IReadOnlyCollection<Error> _errors;
 
+	#endregion
+
+	#region Constructors
+
+	/// <summary>
+	/// Initializes a new instance of the <see cref="ValidationResult"/> class.
+	/// </summary>
+	/// <param name="errors">The collection of validation errors.</param>
 	private ValidationResult(IReadOnlyCollection<Error> errors)
-		: base(false, ValidationErrors.ValidationError, ResultExceptionType.BadRequest)
+		: base(false, ValidationErrors.ValidationError, ResultExceptionType.ValidationError)
 	{
 		_errors = errors;
 	}
 
+	#endregion
+
+	#region Properties
+
+	/// <summary>
+	/// Gets the collection of validation errors that caused the failure.
+	/// </summary>
 	public IReadOnlyCollection<Error> Errors => _errors;
 
+	#endregion
+
+	#region Factory Methods
+
+	/// <summary>
+	/// Creates a validation result with the provided errors.
+	/// </summary>
+	/// <param name="errors">The validation errors. Must contain at least one non-null, non-None error.</param>
+	/// <returns>A failure validation result.</returns>
 	public static ValidationResult WithErrors(IEnumerable<Error> errors)
 	{
 		ArgumentNullException.ThrowIfNull(errors);
@@ -29,5 +54,12 @@ public sealed class ValidationResult : Result, IValidationResult
 		return new ValidationResult(list);
 	}
 
+	/// <summary>
+	/// Convenience overload for array inputs.
+	/// </summary>
+	/// <param name="errors">The validation errors.</param>
+	/// <returns>A failure validation result.</returns>
 	public static ValidationResult WithErrors(params Error[] errors) => WithErrors((IEnumerable<Error>)errors);
+
+	#endregion
 }

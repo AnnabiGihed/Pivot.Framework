@@ -28,6 +28,12 @@ public interface IDomainEventHandler<TEvent> : INotificationHandler<DomainEventN
 	/// <summary>
 	/// MediatR entry point. Unwraps the notification and delegates to <see cref="HandleWithResultAsync"/>.
 	/// </summary>
+	/// <remarks>
+	/// WARNING: The Result returned by HandleWithResultAsync is intentionally discarded in this
+	/// MediatR notification path. Failures expressed through the Result pattern will NOT propagate
+	/// to the publisher. If you need Result-based error reporting, use HandleWithResultAsync directly
+	/// or implement a custom IDomainEventDispatcher that collects Results.
+	/// </remarks>
 	async Task INotificationHandler<DomainEventNotification<TEvent>>.Handle(
 		DomainEventNotification<TEvent> notification, CancellationToken cancellationToken)
 	{

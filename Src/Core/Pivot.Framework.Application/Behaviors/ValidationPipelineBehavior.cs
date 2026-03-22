@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+using System.Collections.Concurrent;
+using FluentValidation;
 using MediatR;
 using Pivot.Framework.Domain.Shared;
 
@@ -18,8 +19,13 @@ public sealed class ValidationPipelineBehavior<TRequest, TResponse>
 	where TRequest : IRequest<TResponse>
 	where TResponse : Result
 {
-	private readonly IReadOnlyCollection<IValidator<TRequest>> _validators;
+	#region Fields
+	private static readonly ConcurrentDictionary<Type, Func<Error[], object>> _validationResultFactories = new();
 
+	private readonly IReadOnlyCollection<IValidator<TRequest>> _validators;
+	#endregion
+
+	#region Constructors
 	/// <summary>
 	/// Initializes a new instance of the <see cref="ValidationPipelineBehavior{TRequest, TResponse}"/> class.
 	/// </summary>
@@ -28,7 +34,9 @@ public sealed class ValidationPipelineBehavior<TRequest, TResponse>
 	{
 		_validators = validators?.ToArray() ?? throw new ArgumentNullException(nameof(validators));
 	}
+	#endregion
 
+	#region Public Methods
 	/// <summary>
 	/// Executes FluentValidation and returns validation failures as a ValidationResult.
 	/// </summary>
@@ -55,7 +63,9 @@ public sealed class ValidationPipelineBehavior<TRequest, TResponse>
 			.Select(f => new Error(
 				code: f.PropertyName,   // You can change this to a standard code if you prefer.
 				message: f.ErrorMessage))
-			.Distinct()
+			// Note: Distinct uses Error.Equals which compares both Code and Message.
+		// Errors with the same code but different messages (e.g., localized) will NOT be deduplicated.
+		.Distinct()
 			.ToArray();
 
 		if (errors.Length > 0)
@@ -63,41 +73,28 @@ public sealed class ValidationPipelineBehavior<TRequest, TResponse>
 
 		return await next();
 	}
+	#endregion
 
+	#region Private Helpers
 	/// <summary>
 	/// Creates either a non-generic <see cref="ValidationResult"/> (when TResponse is Result)
 	/// or a generic <see cref="ValidationResult{T}"/> (when TResponse is Result{T}).
+	/// Uses a cached factory delegate to avoid repeated reflection lookups.
 	/// </summary>
 	private static TResult CreateValidationResult<TResult>(Error[] errors)
 		where TResult : Result
 	{
-		ArgumentNullException.ThrowIfNull(errors);
-
-		// Non-generic Result
-		if (typeof(TResult) == typeof(Result))
-			return (ValidationResult.WithErrors(errors) as TResult)!;
-
-		// Generic Result<T>
-		if (typeof(TResult).IsGenericType &&
-			typeof(TResult).GetGenericTypeDefinition() == typeof(Result<>))
+		var factory = _validationResultFactories.GetOrAdd(typeof(TResult), type =>
 		{
-			var valueType = typeof(TResult).GenericTypeArguments[0];
+			if (type == typeof(Result))
+				return errs => ValidationResult.WithErrors(errs);
 
-			var validationResultType = typeof(ValidationResult<>).MakeGenericType(valueType);
-
-			var factory = validationResultType.GetMethod(
-				nameof(ValidationResult<int>.WithErrors),
-				new[] { typeof(Error[]) });
-
-			if (factory is null)
-				throw new InvalidOperationException($"Could not find WithErrors(Error[]) on {validationResultType.FullName}.");
-
-			var instance = factory.Invoke(null, new object?[] { errors });
-			return (TResult)instance!;
-		}
-
-		throw new InvalidOperationException(
-			$"Unsupported response type '{typeof(TResult).FullName}'. " +
-			$"ValidationPipelineBehavior supports Result and Result<T> only.");
+			var genericType = type.GetGenericArguments()[0];
+			var validationResultType = typeof(ValidationResult<>).MakeGenericType(genericType);
+			var method = validationResultType.GetMethod(nameof(ValidationResult<int>.WithErrors), new[] { typeof(Error[]) })!;
+			return errs => method.Invoke(null, new object[] { errs })!;
+		});
+		return (TResult)factory(errors);
 	}
+	#endregion
 }

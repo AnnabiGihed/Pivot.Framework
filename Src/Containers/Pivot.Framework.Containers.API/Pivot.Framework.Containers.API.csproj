@@ -1,14 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageId>Pivot.Framework.Containers.API</PackageId>
     <Version>1.0.0</Version>
-    <Authors>Annabi Gihed</Authors>
-    <Description>Pivot.Framework.Containers.API</Description>
-    <RepositoryUrl>https://github.com/AnnabiGihed/Pivot.Framework</RepositoryUrl>
+    <Description>
+      ASP.NET Core API container infrastructure for Pivot.Framework.
+      Provides ApiController base class, middleware integration, and DI configuration.
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,7 +25,7 @@
     <ProjectReference Include="..\..\Core\Pivot.Framework.Application\Pivot.Framework.Application.csproj" />
     <ProjectReference Include="..\..\Core\Pivot.Framework.Domain\Pivot.Framework.Domain.csproj" />
     <ProjectReference Include="..\..\Infrastructure\Pivot.Framework.Infrastructure.Abstraction\Pivot.Framework.Infrastructure.Abstraction.csproj" />
-    <ProjectReference Include="..\Authentication\Pivot.Framework.Authentication.API\Pivot.Framework.Authentication.AspNetCore.csproj" />
+    <ProjectReference Include="..\Authentication\Pivot.Framework.Authentication.AspNetCore\Pivot.Framework.Authentication.AspNetCore.csproj" />
     <ProjectReference Include="..\Authentication\Pivot.Framework.Authentication.Caching\Pivot.Framework.Authentication.Caching.csproj" />
   </ItemGroup>
 

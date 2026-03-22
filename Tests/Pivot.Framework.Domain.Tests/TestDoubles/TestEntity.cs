@@ -5,10 +5,10 @@ namespace Pivot.Framework.Domain.Tests.TestDoubles;
 /// <summary>
 /// Author      : Gihed Annabi
 /// Date        : 03-2026
-/// Purpose     : Test double for <see cref="Entity{TId}"/>.
+/// Purpose     : Test double for <see cref="FullEntity{TId}"/>.
 ///              Exposes protected methods for unit test assertions.
 /// </summary>
-public sealed class TestEntity : Entity<TestId>
+public sealed class TestEntity : FullEntity<TestId>
 {
 	#region Properties
 	/// <summary>
@@ -34,7 +34,7 @@ public sealed class TestEntity : Entity<TestId>
 
 	#region Public Methods
 	/// <summary>
-	/// Exposes <see cref="Entity{TId}.InitializeAudit"/> for testing.
+	/// Exposes <see cref="AuditableEntity{TId}.InitializeAudit"/> for testing.
 	/// </summary>
 	public void PerformInitializeAudit(DateTime createdOnUtc, string createdBy)
 	{
@@ -42,7 +42,7 @@ public sealed class TestEntity : Entity<TestId>
 	}
 
 	/// <summary>
-	/// Exposes <see cref="Entity{TId}.Touch"/> for testing.
+	/// Exposes <see cref="AuditableEntity{TId}.Touch"/> for testing.
 	/// </summary>
 	public void PerformTouch(DateTime modifiedOnUtc, string modifiedBy)
 	{
@@ -50,7 +50,7 @@ public sealed class TestEntity : Entity<TestId>
 	}
 
 	/// <summary>
-	/// Exposes <see cref="Entity{TId}.SetAudit"/> for testing.
+	/// Exposes <see cref="AuditableEntity{TId}.SetAudit"/> for testing.
 	/// </summary>
 	public void PerformSetAudit(AuditInfo audit)
 	{
@@ -58,7 +58,7 @@ public sealed class TestEntity : Entity<TestId>
 	}
 
 	/// <summary>
-	/// Exposes <see cref="Entity{TId}.SoftDelete"/> for testing.
+	/// Exposes <see cref="FullEntity{TId}.SoftDelete"/> for testing.
 	/// </summary>
 	public void PerformSoftDelete(DateTime deletedOnUtc, string deletedBy)
 	{
@@ -66,7 +66,7 @@ public sealed class TestEntity : Entity<TestId>
 	}
 
 	/// <summary>
-	/// Exposes <see cref="Entity{TId}.Restore"/> for testing.
+	/// Exposes <see cref="FullEntity{TId}.Restore"/> for testing.
 	/// </summary>
 	public void PerformRestore(DateTime restoredOnUtc, string restoredBy)
 	{

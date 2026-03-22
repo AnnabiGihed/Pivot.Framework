@@ -1,17 +1,33 @@
-﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
+using Pivot.Framework.Infrastructure.Abstraction.Persistence;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.Repositories;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessagePublisher;
 
 namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.Outbox.Services;
 
-public class OutboxPublisherService<TContext>(IServiceProvider serviceProvider, ILogger<OutboxPublisherService<TContext>> logger) : BackgroundService where TContext : DbContext
+/// <summary>
+/// Configuration options for <see cref="OutboxPublisherService{TContext}"/>.
+/// </summary>
+public class OutboxPublisherOptions
+{
+	/// <summary>
+	/// The interval between outbox polling cycles. Defaults to 5 seconds.
+	/// </summary>
+	public TimeSpan PollingInterval { get; set; } = TimeSpan.FromSeconds(5);
+}
+
+public class OutboxPublisherService<TContext>(
+	IServiceProvider serviceProvider,
+	ILogger<OutboxPublisherService<TContext>> logger,
+	IOptions<OutboxPublisherOptions> options) : BackgroundService where TContext : class, IPersistenceContext
 {
 	#region Properties
 	protected readonly IServiceProvider _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 	protected readonly ILogger<OutboxPublisherService<TContext>> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+	protected readonly OutboxPublisherOptions _options = options?.Value ?? new OutboxPublisherOptions();
 	#endregion
 
 	#region BackgroundService Overrides
@@ -19,8 +35,9 @@ public class OutboxPublisherService<TContext>(IServiceProvider serviceProvider, 
 	{
 		while (!stoppingToken.IsCancellationRequested)
 		{
-			using (var scope = _serviceProvider.CreateScope())
+			try
 			{
+				using var scope = _serviceProvider.CreateScope();
 				var outboxRepository = scope.ServiceProvider.GetRequiredService<IOutboxRepository<TContext>>();
 				var messagePublisher = scope.ServiceProvider.GetRequiredService<IMessagePublisher>();
 
@@ -30,18 +47,28 @@ public class OutboxPublisherService<TContext>(IServiceProvider serviceProvider, 
 				{
 					try
 					{
-						await messagePublisher.PublishAsync(message);
+						var result = await messagePublisher.PublishAsync(message);
+						if (result.IsFailure)
+						{
+							_logger.LogWarning("Failed to publish message {MessageId}: {Error}. Will retry next cycle.",
+								message.Id, result.Error);
+							continue; // skip marking as processed, will be retried
+						}
 						await outboxRepository.MarkAsProcessedAsync(message.Id, stoppingToken);
-						_logger.LogInformation($"Message {message.Id} published successfully.");
+						_logger.LogInformation("Message {MessageId} published successfully.", message.Id);
 					}
 					catch (Exception ex)
 					{
-						_logger.LogError(ex, $"Error publishing message {message.Id}");
+						_logger.LogError(ex, "Error publishing message {MessageId}.", message.Id);
 					}
-					// Add a delay to avoid tight loops
-					await Task.Delay(1000, stoppingToken);
 				}
 			}
+			catch (Exception ex) when (ex is not OperationCanceledException)
+			{
+				_logger.LogError(ex, "Error during outbox processing cycle.");
+			}
+
+			await Task.Delay(_options.PollingInterval, stoppingToken);
 		}
 	}
 	#endregion

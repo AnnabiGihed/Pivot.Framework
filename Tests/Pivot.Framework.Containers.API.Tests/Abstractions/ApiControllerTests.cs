@@ -123,7 +123,7 @@ public class ApiControllerTests
 	public void HandleFailure_Unauthorized_ShouldReturn401()
 	{
 		var result = Result.Failure(new Error("Unauthorized", "Not authenticated"),
-			ResultExceptionType.Unauthorized);
+			ResultExceptionType.AuthenticationRequired);
 
 		var actionResult = _controller.InvokeHandleFailure(result);
 
@@ -139,7 +139,7 @@ public class ApiControllerTests
 	public void HandleFailure_Forbidden_ShouldReturn403()
 	{
 		var result = Result.Failure(new Error("Forbidden", "Access denied"),
-			ResultExceptionType.Forbidden);
+			ResultExceptionType.AccessDenied);
 
 		var actionResult = _controller.InvokeHandleFailure(result);
 
@@ -261,7 +261,7 @@ public class ApiControllerTests
 	public void HandleGlobalFailure_Unauthorized_ShouldThrowBadRequestException()
 	{
 		var result = Result.Failure(new Error("Unauthorized", "Not authenticated"),
-			ResultExceptionType.Unauthorized);
+			ResultExceptionType.AuthenticationRequired);
 
 		var act = () => _controller.InvokeHandleGlobalFailure(result);
 
@@ -275,7 +275,7 @@ public class ApiControllerTests
 	public void HandleGlobalFailure_Forbidden_ShouldThrowBadRequestException()
 	{
 		var result = Result.Failure(new Error("Forbidden", "Access denied"),
-			ResultExceptionType.Forbidden);
+			ResultExceptionType.AccessDenied);
 
 		var act = () => _controller.InvokeHandleGlobalFailure(result);
 

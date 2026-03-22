@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata;
 using Pivot.Framework.Domain.Primitives;
 
-namespace Templates.Persistence.EntityFrameworkCore.Configuration;
+namespace Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Configuration;
 
 /// <summary>
 /// Author      : Gihed Annabi

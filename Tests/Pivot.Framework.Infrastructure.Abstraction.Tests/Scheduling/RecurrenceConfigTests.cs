@@ -70,18 +70,20 @@ public class RecurrenceConfigTests
 	{
 		var config = new RecurrenceConfig { Type = RecurrenceType.Weekly, Interval = 1 };
 
-		config.ToCronExpression().Should().Be("0 0 * * 0/1");
+		config.ToCronExpression().Should().Be("0 0 * * 0");
 	}
 
 	/// <summary>
-	/// Verifies weekly recurrence with interval 2 produces correct Cron expression.
+	/// Verifies weekly recurrence with interval > 1 throws NotSupportedException.
 	/// </summary>
 	[Fact]
-	public void ToCronExpression_Weekly_Interval2_ShouldReturnCorrectCron()
+	public void ToCronExpression_Weekly_Interval2_ShouldThrow()
 	{
 		var config = new RecurrenceConfig { Type = RecurrenceType.Weekly, Interval = 2 };
 
-		config.ToCronExpression().Should().Be("0 0 * * 0/2");
+		var act = () => config.ToCronExpression();
+
+		act.Should().Throw<NotSupportedException>();
 	}
 	#endregion
 
@@ -107,7 +109,7 @@ public class RecurrenceConfigTests
 	{
 		var config = new RecurrenceConfig { Type = RecurrenceType.Yearly, Interval = 1 };
 
-		config.ToCronExpression().Should().Be("0 0 1 1 */1");
+		config.ToCronExpression().Should().Be("0 0 1 1 *");
 	}
 	#endregion
 

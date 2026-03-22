@@ -1,4 +1,4 @@
-﻿namespace Pivot.Framework.Domain.Shared;
+namespace Pivot.Framework.Domain.Shared;
 
 /// <summary>
 /// Author      : Gihed Annabi
@@ -10,10 +10,18 @@
 /// </summary>
 public class Result
 {
+	#region Constructors
+
+	/// <summary>
+	/// Initializes a new instance of the <see cref="Result"/> class.
+	/// </summary>
+	/// <param name="isSuccess">Whether the result represents success.</param>
+	/// <param name="error">The error for failure results; <see cref="Error.None"/> for success results.</param>
+	/// <param name="resultExceptionType">Classification used for mapping to transport semantics.</param>
 	protected internal Result(
 		bool isSuccess,
 		Error error,
-		ResultExceptionType resultExceptionType = ResultExceptionType.BadRequest)
+		ResultExceptionType resultExceptionType = ResultExceptionType.ValidationError)
 	{
 		ArgumentNullException.ThrowIfNull(error);
 
@@ -29,6 +37,10 @@ public class Result
 		IsSuccess = isSuccess;
 		Error = error;
 	}
+
+	#endregion
+
+	#region Properties
 
 	/// <summary>
 	/// Gets whether the result indicates success.
@@ -50,6 +62,10 @@ public class Result
 	/// </summary>
 	public ResultExceptionType ResultExceptionType { get; }
 
+	#endregion
+
+	#region Factory Methods
+
 	/// <summary>
 	/// Creates a success result.
 	/// </summary>
@@ -64,13 +80,13 @@ public class Result
 	/// <summary>
 	/// Creates a failure result.
 	/// </summary>
-	public static Result Failure(Error error, ResultExceptionType resultExceptionType = ResultExceptionType.BadRequest)
+	public static Result Failure(Error error, ResultExceptionType resultExceptionType = ResultExceptionType.ValidationError)
 		=> new(false, error, resultExceptionType);
 
 	/// <summary>
 	/// Creates a failure result carrying a value type default.
 	/// </summary>
-	public static Result<TValue> Failure<TValue>(Error error, ResultExceptionType resultExceptionType = ResultExceptionType.BadRequest)
+	public static Result<TValue> Failure<TValue>(Error error, ResultExceptionType resultExceptionType = ResultExceptionType.ValidationError)
 		=> new(default, false, error, resultExceptionType);
 
 	/// <summary>
@@ -78,5 +94,7 @@ public class Result
 	/// Returns success when value is not null; otherwise returns failure with <see cref="Error.NullValue"/>.
 	/// </summary>
 	public static Result<TValue> Create<TValue>(TValue? value)
-		=> value is not null ? Success(value) : Failure<TValue>(Error.NullValue, ResultExceptionType.BadRequest);
+		=> value is not null ? Success(value) : Failure<TValue>(Error.NullValue, ResultExceptionType.ValidationError);
+
+	#endregion
 }

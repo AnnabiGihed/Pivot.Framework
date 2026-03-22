@@ -1,5 +1,3 @@
-﻿using Pivot.Framework.Domain.Shared;
-
 namespace Pivot.Framework.Domain.Shared;
 
 /// <summary>
@@ -10,6 +8,8 @@ namespace Pivot.Framework.Domain.Shared;
 /// </summary>
 public static class ResultExtensions
 {
+	#region Public Methods
+
 	/// <summary>
 	/// Ensures that a successful result satisfies a predicate.
 	/// If the predicate fails, returns a failure result with the provided error.
@@ -19,7 +19,7 @@ public static class ResultExtensions
 		this Result<T> result,
 		Func<T, bool> predicate,
 		Error error,
-		ResultExceptionType resultExceptionType = ResultExceptionType.BadRequest)
+		ResultExceptionType resultExceptionType = ResultExceptionType.ValidationError)
 	{
 		ArgumentNullException.ThrowIfNull(result);
 		ArgumentNullException.ThrowIfNull(predicate);
@@ -59,7 +59,7 @@ public static class ResultExtensions
 		this Result<TIn> result,
 		Func<TIn, TOut> mappingFunc,
 		Func<Exception, Error>? errorFactory = null,
-		ResultExceptionType resultExceptionType = ResultExceptionType.BadRequest)
+		ResultExceptionType resultExceptionType = ResultExceptionType.ValidationError)
 	{
 		ArgumentNullException.ThrowIfNull(result);
 		ArgumentNullException.ThrowIfNull(mappingFunc);
@@ -77,4 +77,6 @@ public static class ResultExtensions
 			return Result.Failure<TOut>(error, resultExceptionType);
 		}
 	}
+
+	#endregion
 }

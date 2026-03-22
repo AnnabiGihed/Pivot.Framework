@@ -299,14 +299,14 @@ public class BaseDomainErrorsTests
 	}
 	#endregion
 
-	#region InternalServerError Tests
+	#region UnexpectedError Tests
 	/// <summary>
-	/// Verifies InternalServerError returns a valid error.
+	/// Verifies UnexpectedError returns a valid error.
 	/// </summary>
 	[Fact]
-	public void InternalServerError_ShouldReturnError()
+	public void UnexpectedError_ShouldReturnError()
 	{
-		var error = BaseDomainErrors.General.InternalServerError("Something broke");
+		var error = BaseDomainErrors.General.UnexpectedError("Something broke");
 
 		error.Should().NotBeNull();
 		error.Code.Should().NotBeNullOrWhiteSpace();
@@ -314,34 +314,34 @@ public class BaseDomainErrorsTests
 	}
 
 	/// <summary>
-	/// Verifies InternalServerError with null message throws.
+	/// Verifies UnexpectedError with null message throws.
 	/// </summary>
 	[Fact]
-	public void InternalServerError_WithNullMessage_ShouldThrow()
+	public void UnexpectedError_WithNullMessage_ShouldThrow()
 	{
-		var act = () => BaseDomainErrors.General.InternalServerError(null!);
+		var act = () => BaseDomainErrors.General.UnexpectedError(null!);
 
 		act.Should().Throw<ArgumentNullException>();
 	}
 
 	/// <summary>
-	/// Verifies InternalServerError with custom descriptors.
+	/// Verifies UnexpectedError with custom descriptors.
 	/// </summary>
 	[Fact]
-	public void InternalServerError_WithDescriptors_ShouldUseCustomCode()
+	public void UnexpectedError_WithDescriptors_ShouldUseCustomCode()
 	{
-		var error = BaseDomainErrors.General.InternalServerError("msg", "Custom.ISE", "Error: {0}");
+		var error = BaseDomainErrors.General.UnexpectedError("msg", "Custom.ISE", "Error: {0}");
 
 		error.Code.Should().Be("Custom.ISE");
 	}
 
 	/// <summary>
-	/// Verifies InternalServerError with descriptors and null message throws.
+	/// Verifies UnexpectedError with descriptors and null message throws.
 	/// </summary>
 	[Fact]
-	public void InternalServerError_WithDescriptors_NullMessage_ShouldThrow()
+	public void UnexpectedError_WithDescriptors_NullMessage_ShouldThrow()
 	{
-		var act = () => BaseDomainErrors.General.InternalServerError(null!, "code", "msg");
+		var act = () => BaseDomainErrors.General.UnexpectedError(null!, "code", "msg");
 
 		act.Should().Throw<ArgumentNullException>();
 	}

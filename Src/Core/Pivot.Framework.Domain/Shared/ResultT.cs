@@ -1,4 +1,4 @@
-﻿namespace Pivot.Framework.Domain.Shared;
+namespace Pivot.Framework.Domain.Shared;
 
 /// <summary>
 /// Author      : Gihed Annabi
@@ -10,7 +10,13 @@
 /// <typeparam name="TValue">The value type.</typeparam>
 public class Result<TValue> : Result
 {
+	#region Fields
+
 	private readonly TValue? _value;
+
+	#endregion
+
+	#region Constructors
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="Result{TValue}"/> class.
@@ -23,7 +29,7 @@ public class Result<TValue> : Result
 		TValue? value,
 		bool isSuccess,
 		Error error,
-		ResultExceptionType resultExceptionType = ResultExceptionType.BadRequest)
+		ResultExceptionType resultExceptionType = ResultExceptionType.ValidationError)
 		: base(isSuccess, error, resultExceptionType)
 	{
 		// Enforce consistency with Value getter semantics:
@@ -35,6 +41,10 @@ public class Result<TValue> : Result
 		_value = value;
 	}
 
+	#endregion
+
+	#region Properties
+
 	/// <summary>
 	/// Gets the value of a successful result.
 	/// Accessing this property on a failure result throws.
@@ -43,9 +53,15 @@ public class Result<TValue> : Result
 		? _value!
 		: throw new InvalidOperationException("The value of a failure result cannot be accessed.");
 
+	#endregion
+
+	#region Operators
+
 	/// <summary>
 	/// Implicitly converts a value into a <see cref="Result{TValue}"/> using <see cref="Result.Create{TValue}(TValue?)"/>.
 	/// If the value is null, the result is a failure with <see cref="Error.NullValue"/>.
 	/// </summary>
 	public static implicit operator Result<TValue>(TValue? value) => Result.Create(value);
+
+	#endregion
 }

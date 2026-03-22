@@ -11,5 +11,12 @@ namespace Pivot.Framework.Containers.API.Middleware;
 /// </summary>
 public sealed class CustomValidationProblemDetails : ProblemDetails
 {
+	#region Properties
+
+	/// <summary>
+	/// Collection of domain / validation errors associated with the problem.
+	/// </summary>
 	public IReadOnlyCollection<Error> ValidationErrors { get; init; } = Array.Empty<Error>();
+
+	#endregion
 }

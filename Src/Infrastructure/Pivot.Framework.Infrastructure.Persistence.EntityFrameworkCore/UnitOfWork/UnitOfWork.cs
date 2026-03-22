@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
 using Pivot.Framework.Domain.Shared;
 using Microsoft.EntityFrameworkCore;
 using Pivot.Framework.Domain.Primitives;
+using Pivot.Framework.Application.Abstractions;
+using Pivot.Framework.Infrastructure.Abstraction.Persistence;
 using Pivot.Framework.Infrastructure.Abstraction.UnitOfWork;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.DomainEventPublisher;
 
@@ -25,34 +26,77 @@ namespace Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.UnitOfW
 /// Used as a DI discriminator and to resolve the concrete DbContext from DI.
 /// </typeparam>
 public abstract class UnitOfWork<TContext> : IUnitOfWork<TContext>
-	where TContext : DbContext
+	where TContext : DbContext, IPersistenceContext
 {
+	#region Fields
+	/// <summary>
+	/// The EF Core database context used for persistence operations.
+	/// </summary>
 	protected readonly DbContext _dbContext;
-	protected readonly IHttpContextAccessor _httpContextAccessor;
-	protected readonly IDomainEventPublisher _domainEventPublisher;
 
-	protected UnitOfWork(TContext dbContext, IHttpContextAccessor httpContextAccessor, IDomainEventPublisher domainEventPublisher)
+	/// <summary>
+	/// Provider for resolving the current authenticated user for audit stamping.
+	/// </summary>
+	protected readonly ICurrentUserProvider _currentUserProvider;
+
+	/// <summary>
+	/// Publisher that serializes domain events into the outbox for reliable delivery.
+	/// </summary>
+	protected readonly IDomainEventPublisher _domainEventPublisher;
+	#endregion
+
+	#region Constructors
+	/// <summary>
+	/// Initialises a new <see cref="UnitOfWork{TContext}"/> with the provided dependencies.
+	/// </summary>
+	/// <param name="dbContext">The EF Core database context. Must not be null.</param>
+	/// <param name="currentUserProvider">The current user provider for audit stamping. Must not be null.</param>
+	/// <param name="domainEventPublisher">The domain event publisher for outbox persistence. Must not be null.</param>
+	/// <exception cref="ArgumentNullException">
+	/// Thrown when any of the parameters is null.
+	/// </exception>
+	protected UnitOfWork(TContext dbContext, ICurrentUserProvider currentUserProvider, IDomainEventPublisher domainEventPublisher)
 	{
 		_dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-		_httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+		_currentUserProvider = currentUserProvider ?? throw new ArgumentNullException(nameof(currentUserProvider));
 		_domainEventPublisher = domainEventPublisher ?? throw new ArgumentNullException(nameof(domainEventPublisher));
 	}
+	#endregion
 
+	#region Public Methods
+	/// <summary>
+	/// Persists all tracked changes to the database. Before saving, auditable entities
+	/// are stamped with creation/modification metadata and domain events are serialized
+	/// into the outbox for reliable delivery.
+	/// </summary>
+	/// <param name="cancellationToken">Token to observe for cooperative cancellation.</param>
+	/// <returns>A <see cref="Result"/> indicating success or the first encountered failure.</returns>
 	public virtual async Task<Result> SaveChangesAsync(CancellationToken cancellationToken = default)
 	{
 		try
 		{
 			UpdateAuditableEntities();
 
-			var persistEventsResult = await PersistDomainEventsToOutboxAsync(cancellationToken);
+			var aggregatesWithEvents = _dbContext.ChangeTracker
+				.Entries<IAggregateRoot>()
+				.Where(e => e.Entity.GetDomainEvents().Any())
+				.Select(e => e.Entity)
+				.ToList();
+
+			var persistEventsResult = await PersistDomainEventsToOutboxAsync(aggregatesWithEvents, cancellationToken);
 			if (persistEventsResult.IsFailure)
 				return persistEventsResult;
 
 			await _dbContext.SaveChangesAsync(cancellationToken);
 
-			ClearDomainEvents();
+			foreach (var aggregate in aggregatesWithEvents)
+				aggregate.ClearDomainEvents();
 
 			return Result.Success();
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
 		}
 		catch (DbUpdateConcurrencyException ex)
 		{
@@ -67,15 +111,17 @@ public abstract class UnitOfWork<TContext> : IUnitOfWork<TContext>
 			return Result.Failure(new Error("UnexpectedError", ex.Message));
 		}
 	}
+	#endregion
 
+	#region Protected Methods
+	/// <summary>
+	/// Stamps auditable entities with creation or modification metadata based on their
+	/// current change tracker state.
+	/// </summary>
 	protected virtual void UpdateAuditableEntities()
 	{
 		var now = DateTime.UtcNow;
-
-		var identity = _httpContextAccessor.HttpContext?.User?.Identity;
-		var actor = (identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(identity.Name))
-			? identity.Name!
-			: "System";
+		var actor = _currentUserProvider.GetCurrentUser();
 
 		foreach (var entry in _dbContext.ChangeTracker.Entries<IAuditableEntity>())
 		{
@@ -85,21 +131,22 @@ public abstract class UnitOfWork<TContext> : IUnitOfWork<TContext>
 			}
 			else if (entry.State == EntityState.Modified)
 			{
-				entry.Entity.Audit.Modify(now, actor);
+				entry.Entity.SetAudit(entry.Entity.Audit.Modify(now, actor));
 			}
 		}
 	}
 
-	protected virtual async Task<Result> PersistDomainEventsToOutboxAsync(CancellationToken cancellationToken)
+	/// <summary>
+	/// Iterates over aggregates that have pending domain events and persists each event
+	/// to the outbox via the <see cref="IDomainEventPublisher"/>.
+	/// </summary>
+	/// <param name="aggregates">The list of aggregates with pending domain events.</param>
+	/// <param name="cancellationToken">Token to observe for cooperative cancellation.</param>
+	/// <returns>A <see cref="Result"/> indicating success or the first encountered failure.</returns>
+	protected virtual async Task<Result> PersistDomainEventsToOutboxAsync(List<IAggregateRoot> aggregates, CancellationToken cancellationToken)
 	{
 		try
 		{
-			var aggregates = _dbContext.ChangeTracker
-				.Entries<IAggregateRoot>()
-				.Select(e => e.Entity)
-				.Where(a => a.GetDomainEvents().Any())
-				.ToList();
-
 			foreach (var aggregate in aggregates)
 			{
 				foreach (var domainEvent in aggregate.GetDomainEvents())
@@ -117,10 +164,5 @@ public abstract class UnitOfWork<TContext> : IUnitOfWork<TContext>
 			return Result.Failure(new Error("DomainEventOutboxError", ex.Message));
 		}
 	}
-
-	protected virtual void ClearDomainEvents()
-	{
-		foreach (var entry in _dbContext.ChangeTracker.Entries<IAggregateRoot>())
-			entry.Entity.ClearDomainEvents();
-	}
+	#endregion
 }

@@ -1,4 +1,5 @@
-﻿namespace Pivot.Framework.Domain.Exceptions;
+namespace Pivot.Framework.Domain.Exceptions;
+
 /// <summary>
 /// Author      : Gihed Annabi
 /// Date        : 01-2026
@@ -6,9 +7,16 @@
 ///              <see cref="AggregateDomainException"/> when disposed or when <see cref="ThrowIfAny"/> is called.
 ///              Intended for validation scenarios where multiple errors must be reported at once.
 /// </summary>
+/// <remarks>This type is not thread-safe. Do not share instances across threads.</remarks>
 public sealed class DomainExceptionScope : IDisposable
 {
+	#region Fields
+
 	private readonly List<DomainException> _domainExceptions = new();
+
+	#endregion
+
+	#region Public Methods
 
 	/// <summary>
 	/// Adds a domain exception to the scope.
@@ -44,17 +52,13 @@ public sealed class DomainExceptionScope : IDisposable
 	}
 
 	/// <summary>
-	/// Disposes the scope and throws if any exceptions were collected.
+	/// Disposes the scope by clearing collected exceptions.
+	/// Call <see cref="ThrowIfAny"/> explicitly before disposing if you want to throw on errors.
 	/// </summary>
 	public void Dispose()
 	{
-		try
-		{
-			ThrowIfAny();
-		}
-		finally
-		{
-			GC.SuppressFinalize(this);
-		}
+		_domainExceptions.Clear();
 	}
+
+	#endregion
 }

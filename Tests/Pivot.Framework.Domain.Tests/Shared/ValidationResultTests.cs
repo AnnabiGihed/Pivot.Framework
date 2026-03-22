@@ -108,7 +108,7 @@ public class ValidationResultTests
 	{
 		var result = ValidationResult.WithErrors(new Error("ERR", "msg"));
 
-		result.ResultExceptionType.Should().Be(ResultExceptionType.BadRequest);
+		result.ResultExceptionType.Should().Be(ResultExceptionType.ValidationError);
 	}
 	#endregion
 

@@ -13,7 +13,7 @@ namespace Pivot.Framework.Domain.Errors;
 ///              using a <c>||</c> separator. Equality is based solely on <see cref="Code"/>
 ///              to allow de-duplication across different message phrasings.
 /// </summary>
-public sealed partial class DomainError : ValueObject<DomainError>
+public sealed class DomainError : ValueObject<DomainError>
 {
 	#region Fields
 	/// <summary>

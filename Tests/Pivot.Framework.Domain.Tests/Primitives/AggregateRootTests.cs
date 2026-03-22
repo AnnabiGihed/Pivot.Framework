@@ -24,7 +24,9 @@ public class AggregateRootTests
 
 		aggregate.ChangeName("New Name");
 
-		aggregate.GetDomainEvents().Should().HaveCount(1);
+		aggregate.GetDomainEvents().Should().ContainSingle()
+			.Which.Should().BeOfType<TestDomainEvent>()
+			.Which.Description.Should().Be("Name changed to New Name");
 	}
 
 	/// <summary>

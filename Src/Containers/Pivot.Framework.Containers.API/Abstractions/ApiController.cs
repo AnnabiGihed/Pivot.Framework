@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Pivot.Framework.Application.Exceptions;
@@ -6,16 +6,47 @@ using Pivot.Framework.Domain.Shared;
 
 namespace Pivot.Framework.Containers.API.Abstractions;
 
+/// <summary>
+/// Author      : Gihed Annabi
+/// Date        : 01-2026
+/// Purpose     : Abstract base controller for all API controllers.
+///              Provides common failure-handling helpers that map
+///              <see cref="Result"/> outcomes to appropriate HTTP responses
+///              (ProblemDetails, exceptions, or typed results).
+/// </summary>
 [ApiController]
 public abstract class ApiController : ControllerBase
 {
+	#region Fields
+
+	/// <summary>
+	/// MediatR sender used to dispatch commands and queries.
+	/// </summary>
 	protected readonly ISender Sender;
 
+	#endregion
+
+	#region Constructors
+
+	/// <summary>
+	/// Initialises a new <see cref="ApiController"/> with the provided MediatR sender.
+	/// </summary>
+	/// <param name="sender">The MediatR sender instance. Must not be null.</param>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="sender"/> is null.</exception>
 	protected ApiController(ISender sender) =>
 		Sender = sender ?? throw new ArgumentNullException(nameof(sender));
 
+	#endregion
+
 	#region Option 1 : HandleFailure (returns ProblemDetails directly)
 
+	/// <summary>
+	/// Maps a failed <see cref="Result"/> to the appropriate HTTP error response
+	/// using <see cref="ProblemDetails"/>.
+	/// </summary>
+	/// <param name="result">The failed result to handle.</param>
+	/// <returns>An <see cref="ActionResult"/> containing a <see cref="ProblemDetails"/> payload.</returns>
+	/// <exception cref="InvalidOperationException">Thrown when the result is successful.</exception>
 	protected ActionResult HandleFailure(Result result)
 	{
 		ArgumentNullException.ThrowIfNull(result);
@@ -27,8 +58,8 @@ public abstract class ApiController : ControllerBase
 		{
 			ResultExceptionType.NotFound => HandleNotFoundFailure(result),
 			ResultExceptionType.Conflict => HandleConflictFailure(result),
-			ResultExceptionType.Unauthorized => HandleUnauthorizedFailure(result),
-			ResultExceptionType.Forbidden => HandleForbiddenFailure(result),
+			ResultExceptionType.AuthenticationRequired => HandleUnauthorizedFailure(result),
+			ResultExceptionType.AccessDenied => HandleForbiddenFailure(result),
 			_ => HandleBadRequestFailure(result)
 		};
 	}
@@ -94,6 +125,13 @@ public abstract class ApiController : ControllerBase
 
 	#region Option 2 : HandleGlobalFailure (throws exceptions for middleware)
 
+	/// <summary>
+	/// Maps a failed <see cref="Result"/> to a strongly-typed exception
+	/// intended to be caught by global exception-handling middleware.
+	/// </summary>
+	/// <param name="result">The failed result to handle.</param>
+	/// <returns>Does not return; always throws.</returns>
+	/// <exception cref="InvalidOperationException">Thrown when the result is successful.</exception>
 	protected ActionResult HandleGlobalFailure(Result result)
 	{
 		ArgumentNullException.ThrowIfNull(result);
@@ -106,8 +144,8 @@ public abstract class ApiController : ControllerBase
 		{
 			ResultExceptionType.NotFound => throw CreateNotFoundException(result),
 			ResultExceptionType.Conflict => throw new BadRequestException(result.Error), // or create a ConflictException if you want
-			ResultExceptionType.Unauthorized => throw new BadRequestException(result.Error), // or UnauthorizedException
-			ResultExceptionType.Forbidden => throw new BadRequestException(result.Error), // or ForbiddenException
+			ResultExceptionType.AuthenticationRequired => throw new BadRequestException(result.Error), // or UnauthorizedException
+			ResultExceptionType.AccessDenied => throw new BadRequestException(result.Error), // or ForbiddenException
 			_ => throw CreateBadRequestException(result)
 		};
 	}
@@ -131,6 +169,13 @@ public abstract class ApiController : ControllerBase
 
 	#region Option 3 : HandleResult (generic helper for controllers)
 
+	/// <summary>
+	/// Convenience method that returns <see cref="OkObjectResult"/> on success
+	/// or delegates to <see cref="HandleFailure"/> on failure.
+	/// </summary>
+	/// <typeparam name="T">The result value type.</typeparam>
+	/// <param name="result">The result to evaluate.</param>
+	/// <returns>An <see cref="ActionResult"/> representing the outcome.</returns>
 	protected ActionResult HandleResult<T>(Result<T> result)
 	{
 		ArgumentNullException.ThrowIfNull(result);

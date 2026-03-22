@@ -51,10 +51,11 @@ public class BaseAsyncCommandRepository<TEntity, TId> : IAsyncCommandRepository<
 	/// <param name="entity">The aggregate root to add. Must not be null.</param>
 	/// <param name="ct">Token to observe for cooperative cancellation.</param>
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="entity"/> is null.</exception>
-	public virtual async Task AddAsync(TEntity entity, CancellationToken ct = default)
+	public virtual Task AddAsync(TEntity entity, CancellationToken ct = default)
 	{
 		ArgumentNullException.ThrowIfNull(entity);
-		await DbContext.Set<TEntity>().AddAsync(entity, ct);
+		DbContext.Set<TEntity>().Add(entity);
+		return Task.CompletedTask;
 	}
 
 	/// <summary>
@@ -83,9 +84,19 @@ public class BaseAsyncCommandRepository<TEntity, TId> : IAsyncCommandRepository<
 
 	/// <summary>
 	/// Deletes the specified <typeparamref name="TEntity"/>.
-	/// When the entity implements <see cref="ISoftDeletableEntity"/>, the entity is soft-deleted
-	/// (flagged only, remains in the database). Otherwise, it is scheduled for physical removal
-	/// on the next commit.
+	/// <para>
+	/// For soft-deletable entities (<see cref="ISoftDeletableEntity"/>): the domain layer should call
+	/// <c>SoftDelete(timestamp, actor)</c> on the aggregate <em>before</em> passing it here. If the
+	/// entity is already marked as deleted, this method simply marks the EF entry as
+	/// <see cref="EntityState.Modified"/> so the change is persisted on commit.
+	/// </para>
+	/// <para>
+	/// If the entity implements <see cref="ISoftDeletableEntity"/> but has <em>not</em> been
+	/// soft-deleted by domain logic, it is hard-deleted (physically removed).
+	/// </para>
+	/// <para>
+	/// For non-soft-deletable entities, the entity is always scheduled for physical removal.
+	/// </para>
 	/// </summary>
 	/// <param name="entity">The aggregate root to delete. Must not be null.</param>
 	/// <param name="ct">Token to observe for cooperative cancellation (not used directly; included for interface parity).</param>
@@ -94,15 +105,14 @@ public class BaseAsyncCommandRepository<TEntity, TId> : IAsyncCommandRepository<
 	{
 		ArgumentNullException.ThrowIfNull(entity);
 
-		if (entity is ISoftDeletableEntity soft)
+		if (entity is ISoftDeletableEntity { IsDeleted: true })
 		{
-			soft.MarkDeleted(DateTime.UtcNow, "System");
+			// Entity was already soft-deleted by domain logic — just mark as modified
 			DbContext.Entry(entity).State = EntityState.Modified;
 			return Task.CompletedTask;
 		}
 
 		DbContext.Set<TEntity>().Remove(entity);
-
 		return Task.CompletedTask;
 	}
 

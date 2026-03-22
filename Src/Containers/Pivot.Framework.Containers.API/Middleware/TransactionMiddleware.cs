@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Pivot.Framework.Infrastructure.Abstraction.Persistence;
 using Pivot.Framework.Infrastructure.Abstraction.Transaction;
 
 namespace Pivot.Framework.Containers.API.Middleware;
@@ -17,7 +18,7 @@ namespace Pivot.Framework.Containers.API.Middleware;
 ///              Commits on 2xx success and 422 domain validation responses;
 ///              rolls back on all other status codes and on unhandled exceptions.
 /// </summary>
-public sealed class TransactionMiddleware<TContext> where TContext : DbContext
+public sealed class TransactionMiddleware<TContext> where TContext : DbContext, IPersistenceContext
 {
 	#region Fields
 	/// <summary>

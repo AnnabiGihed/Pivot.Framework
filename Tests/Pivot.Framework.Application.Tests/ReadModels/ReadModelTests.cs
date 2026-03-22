@@ -76,6 +76,9 @@ public class ReadModelTests
 
 	#region ReadModel<TId> — No Constraint on TId
 
+	/// <summary>
+	/// Verifies that a ReadModel with Guid ID assigns the ID correctly.
+	/// </summary>
 	[Fact]
 	public void ReadModel_WithGuidId_ShouldAssignId()
 	{
@@ -86,6 +89,9 @@ public class ReadModelTests
 		model.Name.Should().Be("Test");
 	}
 
+	/// <summary>
+	/// Verifies that a ReadModel with int ID assigns the ID correctly.
+	/// </summary>
 	[Fact]
 	public void ReadModel_WithIntId_ShouldAssignId()
 	{
@@ -95,6 +101,9 @@ public class ReadModelTests
 		model.Name.Should().Be("Test");
 	}
 
+	/// <summary>
+	/// Verifies that a ReadModel with string ID assigns the ID correctly.
+	/// </summary>
 	[Fact]
 	public void ReadModel_WithStringId_ShouldAssignId()
 	{
@@ -104,6 +113,9 @@ public class ReadModelTests
 		model.Name.Should().Be("Test");
 	}
 
+	/// <summary>
+	/// Verifies that the parameterless constructor sets the default ID value.
+	/// </summary>
 	[Fact]
 	public void ReadModel_ParameterlessConstructor_ShouldSetDefaultId()
 	{
@@ -111,6 +123,9 @@ public class ReadModelTests
 		model.Id.Should().Be(Guid.Empty);
 	}
 
+	/// <summary>
+	/// Verifies that constructing a ReadModel with null ID throws.
+	/// </summary>
 	[Fact]
 	public void ReadModel_NullId_ShouldThrow()
 	{
@@ -122,6 +137,9 @@ public class ReadModelTests
 
 	#region IReadModel<TId> — Interface Compliance
 
+	/// <summary>
+	/// Verifies that ReadModel with Guid ID implements IReadModel.
+	/// </summary>
 	[Fact]
 	public void ReadModel_ShouldImplementIReadModel()
 	{
@@ -131,6 +149,9 @@ public class ReadModelTests
 		((IReadModel<Guid>)model).Id.Should().Be(model.Id);
 	}
 
+	/// <summary>
+	/// Verifies that ReadModel with int ID implements IReadModel.
+	/// </summary>
 	[Fact]
 	public void ReadModel_IntId_ShouldImplementIReadModel()
 	{
@@ -144,6 +165,9 @@ public class ReadModelTests
 
 	#region ReadModelSpecification — Criteria
 
+	/// <summary>
+	/// Verifies that a specification with no criteria has null Criteria.
+	/// </summary>
 	[Fact]
 	public void Specification_WithNoCriteria_ShouldHaveNullCriteria()
 	{
@@ -151,6 +175,9 @@ public class ReadModelTests
 		spec.Criteria.Should().BeNull();
 	}
 
+	/// <summary>
+	/// Verifies that a specification with criteria stores it.
+	/// </summary>
 	[Fact]
 	public void Specification_WithCriteria_ShouldStoreCriteria()
 	{
@@ -162,6 +189,9 @@ public class ReadModelTests
 
 	#region ReadModelSpecification — Paging
 
+	/// <summary>
+	/// Verifies that ApplyPaging sets Skip and Take correctly.
+	/// </summary>
 	[Fact]
 	public void Specification_ApplyPaging_ShouldSetSkipAndTake()
 	{
@@ -172,6 +202,9 @@ public class ReadModelTests
 		spec.Take.Should().Be(25);
 	}
 
+	/// <summary>
+	/// Verifies that ApplyPaging with negative skip throws.
+	/// </summary>
 	[Fact]
 	public void Specification_ApplyPaging_NegativeSkip_ShouldThrow()
 	{
@@ -180,6 +213,9 @@ public class ReadModelTests
 		act.Should().Throw<ArgumentOutOfRangeException>();
 	}
 
+	/// <summary>
+	/// Verifies that ApplyPaging with zero take throws.
+	/// </summary>
 	[Fact]
 	public void Specification_ApplyPaging_ZeroTake_ShouldThrow()
 	{

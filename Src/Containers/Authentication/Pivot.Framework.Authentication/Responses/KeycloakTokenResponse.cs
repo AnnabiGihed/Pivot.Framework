@@ -12,12 +12,21 @@ namespace Pivot.Framework.Authentication.Responses;
 public sealed class KeycloakTokenResponse
 {
 	#region Properties
+	/// <summary>
+	/// Number of seconds until the access token expires.
+	/// </summary>
 	[JsonPropertyName("expires_in")]
 	public int ExpiresIn { get; init; }
 
+	/// <summary>
+	/// The OpenID Connect ID token, if returned by Keycloak.
+	/// </summary>
 	[JsonPropertyName("id_token")]
 	public string? IdToken { get; init; }
 
+	/// <summary>
+	/// The OAuth2 refresh token used to obtain new access tokens.
+	/// </summary>
 	[JsonPropertyName("refresh_token")]
 	public string? RefreshToken { get; init; }
 
@@ -28,6 +37,9 @@ public sealed class KeycloakTokenResponse
 	[JsonPropertyName("refresh_expires_in")]
 	public int RefreshExpiresIn { get; init; }
 
+	/// <summary>
+	/// The OAuth2 access token used to authenticate API requests.
+	/// </summary>
 	[JsonPropertyName("access_token")]
 	public string AccessToken { get; init; } = string.Empty;
 	#endregion

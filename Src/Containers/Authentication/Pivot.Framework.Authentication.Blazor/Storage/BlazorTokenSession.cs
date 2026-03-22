@@ -10,10 +10,29 @@
 public sealed class BlazorTokenSession
 {
 	#region Token payload (populated after callback)
+	/// <summary>
+	/// The OpenID Connect ID token, if returned by Keycloak.
+	/// </summary>
 	public string? IdToken { get; set; }
+
+	/// <summary>
+	/// The OAuth2 access token used to authenticate API requests.
+	/// </summary>
 	public string? AccessToken { get; set; }
+
+	/// <summary>
+	/// The OAuth2 refresh token used to obtain new access tokens.
+	/// </summary>
 	public string? RefreshToken { get; set; }
+
+	/// <summary>
+	/// The UTC timestamp at which the access token expires.
+	/// </summary>
 	public DateTimeOffset? ExpiresAt { get; set; }
+
+	/// <summary>
+	/// The UTC timestamp at which the refresh token expires.
+	/// </summary>
 	public DateTimeOffset? RefreshTokenExpiresAt { get; set; }
 	#endregion
 
@@ -39,6 +58,9 @@ public sealed class BlazorTokenSession
 	#endregion
 
 	#region Helpers
+	/// <summary>
+	/// Returns <c>true</c> when the session contains a valid access token and expiry.
+	/// </summary>
 	public bool HasTokens
 	{
 		get
@@ -47,6 +69,9 @@ public sealed class BlazorTokenSession
 		}
 	}
 
+	/// <summary>
+	/// Returns <c>true</c> when the access token has expired (with a 30-second buffer).
+	/// </summary>
 	public bool IsExpired
 	{
 		get
@@ -55,6 +80,9 @@ public sealed class BlazorTokenSession
 		}
 	}
 
+	/// <summary>
+	/// Returns <c>true</c> when a refresh token is available and has not expired.
+	/// </summary>
 	public bool CanRefresh
 	{
 		get

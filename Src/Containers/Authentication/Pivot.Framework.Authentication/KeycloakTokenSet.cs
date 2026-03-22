@@ -39,12 +39,24 @@ public sealed record KeycloakTokenSet
 		}
 	}
 
+	/// <summary>
+	/// The OpenID Connect ID token, if returned by Keycloak.
+	/// </summary>
 	public string? IdToken { get; init; }
 
+	/// <summary>
+	/// The OAuth2 refresh token used to obtain new access tokens.
+	/// </summary>
 	public string? RefreshToken { get; init; }
 
+	/// <summary>
+	/// The UTC timestamp at which the access token expires.
+	/// </summary>
 	public DateTimeOffset ExpiresAt { get; init; }
 
+	/// <summary>
+	/// The OAuth2 access token used to authenticate API requests.
+	/// </summary>
 	public string AccessToken { get; init; } = string.Empty;
 
 	/// <summary>

@@ -13,6 +13,7 @@ namespace Pivot.Framework.Authentication.AspNetCore.Extensions;
 /// </summary>
 internal static class KeycloakServiceCollectionExtensions
 {
+	#region Internal Methods
 	/// <summary>
 	/// Registers Keycloak JWT + ICurrentUser + IHttpContextAccessor.
 	/// Use <c>services.AddKeycloakAuthentication(config, o => o.WithCurrentUser())</c> instead.
@@ -23,4 +24,5 @@ internal static class KeycloakServiceCollectionExtensions
 		services.RegisterCoreJwtBearer(configuration);
 		return services;
 	}
+	#endregion
 }

@@ -9,6 +9,13 @@ using Pivot.Framework.Infrastructure.Abstraction.Scheduling.Services;
 
 namespace Pivot.Framework.Infrastructure.Scheduling.Extensions;
 
+/// <summary>
+/// Author      : Gihed Annabi
+/// Date        : 01-2026
+/// Purpose     : DI registration and middleware extensions for Hangfire scheduling infrastructure.
+///              Provides methods to register Hangfire with SQL Server storage, mount the dashboard,
+///              and register the generic recurring job manager.
+/// </summary>
 public static class HangfireExtensions
 {
 	/// <summary>

@@ -3,7 +3,12 @@ using Microsoft.AspNetCore.Http;
 
 namespace Pivot.Framework.Authentication.Models;
 
-/// <inheritdoc />
+/// <summary>
+/// Author      : Gihed Annabi
+/// Date        : 02-2026
+/// Purpose     : Default implementation of <see cref="ICurrentUser"/> that extracts
+///              the authenticated user's claims from the current HTTP context.
+/// </summary>
 public sealed class CurrentUser : ICurrentUser
 {
 	#region Dependencies
@@ -31,6 +36,7 @@ public sealed class CurrentUser : ICurrentUser
 		}
 	}
 
+	/// <inheritdoc />
 	public string? DisplayName
 	{
 		get
@@ -49,19 +55,25 @@ public sealed class CurrentUser : ICurrentUser
 		}
 	}
 
+	/// <inheritdoc />
 	public IReadOnlyList<string> Roles => User?.Claims
 		.Where(c => c.Type == ClaimTypes.Role)
 		.Select(c => c.Value)
 		.ToList() ?? [];
 
+	/// <inheritdoc />
 	public ClaimsPrincipal? Principal => User;
 
+	/// <inheritdoc />
 	public bool IsInRole(string role) => User?.IsInRole(role) == true;
 
+	/// <inheritdoc />
 	public bool IsAuthenticated => User?.Identity?.IsAuthenticated == true;
 
+	/// <inheritdoc />
 	public string? Email => User?.FindFirstValue(ClaimTypes.Email) ?? User?.FindFirstValue("email");
 
+	/// <inheritdoc />
 	public string? Username => User?.FindFirstValue("preferred_username") ?? User?.FindFirstValue(ClaimTypes.Name);
 	#endregion
 }

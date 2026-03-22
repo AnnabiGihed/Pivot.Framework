@@ -12,18 +12,32 @@ using Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBroker
 
 namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.Shared.MessagePublisher;
 
+/// <summary>
+/// Author      : Gihed Annabi
+/// Date        : 01-2026
+/// Purpose     : RabbitMQ implementation of <see cref="IMessagePublisher"/>.
+///              Publishes outbox messages to a RabbitMQ exchange with compression,
+///              encryption, Polly retry, and circuit breaker resilience policies.
+///              Lazily initialises the connection and channel on first publish.
+/// </summary>
 public class RabbitMQPublisher(
 	IOptions<RabbitMQSettings> options,
 	IMessageCompressor compressor,
 	IMessageEncryptor encryptor,
 	MessagingResiliencePolicies resiliencePolicies) : IMessagePublisher, IAsyncDisposable
 {
-	#region Properties
+	#region Fields
+	/// <summary>Cache of declared queues to avoid redundant declarations.</summary>
 	protected readonly ConcurrentDictionary<string, bool> _declaredQueues = new();
+	/// <summary>Cache of declared exchanges to avoid redundant declarations.</summary>
 	protected readonly ConcurrentDictionary<string, bool> _declaredExchanges = new();
+	/// <summary>RabbitMQ connection and routing settings.</summary>
 	protected readonly RabbitMQSettings _settings = options.Value ?? throw new ArgumentNullException(nameof(options));
+	/// <summary>Encryptor for message payload encryption (AES-256).</summary>
 	protected readonly IMessageEncryptor _encryptor = encryptor ?? throw new ArgumentNullException(nameof(encryptor));
+	/// <summary>Compressor for message payload compression (GZip).</summary>
 	protected readonly IMessageCompressor _compressor = compressor ?? throw new ArgumentNullException(nameof(compressor));
+	/// <summary>Polly retry and circuit breaker policies for resilient publishing.</summary>
 	protected readonly MessagingResiliencePolicies _resiliencePolicies = resiliencePolicies ?? throw new ArgumentNullException(nameof(resiliencePolicies));
 
 	private IConnection? _connection;
@@ -33,6 +47,13 @@ public class RabbitMQPublisher(
 	#endregion
 
 	#region IMessagePublisher Implementation
+	/// <summary>
+	/// Publishes an outbox message to the configured RabbitMQ exchange.
+	/// The message payload is compressed and encrypted before publishing.
+	/// Uses Polly circuit breaker and retry policies for resilience.
+	/// </summary>
+	/// <param name="message">The outbox message to publish.</param>
+	/// <returns>A <see cref="Result"/> indicating success or failure.</returns>
 	public async Task<Result> PublishAsync(OutboxMessage message)
 	{
 		if (message == null)

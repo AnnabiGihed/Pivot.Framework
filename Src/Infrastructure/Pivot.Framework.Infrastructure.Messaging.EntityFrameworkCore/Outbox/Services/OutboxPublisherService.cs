@@ -19,18 +19,40 @@ public class OutboxPublisherOptions
 	public TimeSpan PollingInterval { get; set; } = TimeSpan.FromSeconds(5);
 }
 
+/// <summary>
+/// Author      : Gihed Annabi
+/// Date        : 01-2026
+/// Purpose     : Background service that polls the outbox for unprocessed messages and publishes
+///              them via <see cref="IMessagePublisher"/>. Successfully published messages are
+///              marked as processed. Failed messages are logged and retried on the next cycle.
+///              Polling interval is configurable via <see cref="OutboxPublisherOptions"/>.
+/// </summary>
+/// <typeparam name="TContext">The persistence context type for outbox repository resolution.</typeparam>
 public class OutboxPublisherService<TContext>(
 	IServiceProvider serviceProvider,
 	ILogger<OutboxPublisherService<TContext>> logger,
 	IOptions<OutboxPublisherOptions> options) : BackgroundService where TContext : class, IPersistenceContext
 {
-	#region Properties
+	#region Fields
+
+	/// <summary>Service provider for creating scoped DI containers per processing cycle.</summary>
 	protected readonly IServiceProvider _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+
+	/// <summary>Logger for diagnostic tracing of outbox publishing operations.</summary>
 	protected readonly ILogger<OutboxPublisherService<TContext>> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+	/// <summary>Configuration options controlling polling interval.</summary>
 	protected readonly OutboxPublisherOptions _options = options?.Value ?? new OutboxPublisherOptions();
+
 	#endregion
 
 	#region BackgroundService Overrides
+
+	/// <summary>
+	/// Continuously polls the outbox for unprocessed messages and publishes them.
+	/// Each cycle creates a new DI scope for proper scoped service resolution.
+	/// </summary>
+	/// <param name="stoppingToken">Token that signals when shutdown is requested.</param>
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
 		while (!stoppingToken.IsCancellationRequested)

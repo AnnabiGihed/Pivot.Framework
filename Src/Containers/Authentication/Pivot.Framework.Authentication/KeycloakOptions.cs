@@ -1,8 +1,10 @@
 ﻿namespace Pivot.Framework.Authentication;
 
 /// <summary>
-/// Central Keycloak configuration options.
-/// Bind this from appsettings.json under the section "Keycloak".
+/// Author      : Gihed Annabi
+/// Date        : 02-2026
+/// Purpose     : Central Keycloak configuration options.
+///              Bind this from appsettings.json under the section "Keycloak".
 /// </summary>
 public sealed class KeycloakOptions
 {

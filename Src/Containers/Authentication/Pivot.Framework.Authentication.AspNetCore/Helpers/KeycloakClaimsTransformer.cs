@@ -22,6 +22,11 @@ namespace Pivot.Framework.Authentication.AspNetCore.Helpers;
 internal static class KeycloakClaimsTransformer
 {
 	#region Public Methods
+	/// <summary>
+	/// Extracts Keycloak role claims from the validated token context and flattens
+	/// them into standard <see cref="ClaimTypes.Role"/> claims.
+	/// </summary>
+	/// <param name="ctx">The token validated context from the JWT bearer pipeline.</param>
 	public static void FlattenRoles(TokenValidatedContext ctx)
 	{
 		if (ctx.Principal?.Identity is not ClaimsIdentity identity)

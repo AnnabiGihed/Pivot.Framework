@@ -40,10 +40,12 @@ internal sealed class RedisBlazorTokenSessionStore : IBlazorTokenSessionStore
 	#endregion
 
 	#region IBlazorTokenSessionStore
+	/// <inheritdoc />
 	public Task RemoveAsync(string sessionId, CancellationToken ct = default)
 	{
 		return _cache.RemoveAsync(BuildKey(sessionId), ct);
 	}
+	/// <inheritdoc />
 	public async Task<BlazorTokenSession?> GetAsync(string sessionId, CancellationToken ct = default)
 	{
 		var bytes = await _cache.GetAsync(BuildKey(sessionId), ct);
@@ -53,6 +55,7 @@ internal sealed class RedisBlazorTokenSessionStore : IBlazorTokenSessionStore
 
 		return JsonSerializer.Deserialize<BlazorTokenSession>(bytes, JsonOpts);
 	}
+	/// <inheritdoc />
 	public async Task SaveAsync(string sessionId, BlazorTokenSession session, CancellationToken ct = default)
 	{
 		var bytes = JsonSerializer.SerializeToUtf8Bytes(session, JsonOpts);

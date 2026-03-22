@@ -17,8 +17,23 @@ using Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBroker
 using Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.Shared.MessageCompressor;
 
 namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.RabbitMQ;
+
+/// <summary>
+/// Author      : Gihed Annabi
+/// Date        : 01-2026
+/// Purpose     : DI registration extensions for the RabbitMQ messaging infrastructure.
+///              Registers the message publisher, receiver, compressor, encryptor, serializer,
+///              resilience policies, and outbox repository.
+/// </summary>
 public static class RabbitMQPublisherExtensions
 {
+	/// <summary>
+	/// Registers all RabbitMQ messaging infrastructure services including the publisher,
+	/// receiver hosted service, compressor, encryptor, and Polly resilience policies.
+	/// </summary>
+	/// <param name="services">The service collection to register into.</param>
+	/// <param name="configuration">The application configuration containing the "RabbitMQ" section.</param>
+	/// <returns>The same <paramref name="services"/> instance for chaining.</returns>
 	public static IServiceCollection AddRabbitMQPublisher(this IServiceCollection services, IConfiguration configuration)
 	{
 		services.Configure<RabbitMQSettings>(options => configuration.GetSection("RabbitMQ").Bind(options));

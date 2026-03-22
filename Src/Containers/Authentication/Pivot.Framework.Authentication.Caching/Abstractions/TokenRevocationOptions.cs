@@ -8,11 +8,14 @@
 /// </summary>
 public sealed class TokenRevocationOptions
 {
+	#region Constants
 	/// <summary>
 	/// The appsettings.json section name for this options block.
 	/// </summary>
 	public const string SectionName = "TokenRevocation";
+	#endregion
 
+	#region Properties
 	/// <summary>
 	/// How long a "revoke-all-for-user" sentinel is kept in Redis.
 	/// Set this to your Keycloak realm's maximum refresh token lifetime
@@ -20,7 +23,9 @@ public sealed class TokenRevocationOptions
 	/// Defaults to 30 days which covers most standard Keycloak configurations.
 	/// </summary>
 	public TimeSpan RevokeAllTtl { get; set; } = TimeSpan.FromDays(30);
+	#endregion
 
+	#region Public Methods
 	/// <summary>
 	/// Validates that the options are in a usable state.
 	/// Throws <see cref="InvalidOperationException"/> if <see cref="RevokeAllTtl"/> is
@@ -31,4 +36,5 @@ public sealed class TokenRevocationOptions
 		if (RevokeAllTtl <= TimeSpan.Zero)
 			throw new InvalidOperationException($"{SectionName}.{nameof(RevokeAllTtl)} must be a positive duration. " + $"Set it to your Keycloak realm's SSO Session Max (e.g. '30.00:00:00' for 30 days).");
 	}
+	#endregion
 }

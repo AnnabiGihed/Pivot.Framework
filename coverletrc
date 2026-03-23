@@ -1,0 +1,18 @@
+# .coverletrc — put this at the solution root
+# (optional — all these can also go in Directory.Build.props)
+{
+  "include": [
+    "[Pivot.Framework.*]*"
+  ],
+  "exclude": [
+    "[*.Tests]*",
+    "[*]*.Migrations.*",
+    "[*]*.Designer*",
+    "[*]*AssemblyReference*"
+  ],
+  "excludeByAttribute": [
+    "GeneratedCodeAttribute",
+    "CompilerGeneratedAttribute",
+    "ExcludeFromCodeCoverageAttribute"
+  ]
+}

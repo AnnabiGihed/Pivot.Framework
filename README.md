@@ -1,5 +1,7 @@
 # Pivot.Framework
 
+[![Tests](https://github.com/AnnabiGihed/Pivot.Framework/actions/workflows/test.yml/badge.svg)](https://github.com/AnnabiGihed/Pivot.Framework/actions/workflows/test.yml)
+
 A collection of production-ready .NET 10 NuGet packages that provide plug-and-play infrastructure for Clean Architecture applications. Covers domain primitives, application plumbing, persistence, caching, messaging, scheduling, and Keycloak authentication for ASP.NET Core, Blazor Server, and MAUI.
 
 Published to GitHub Packages: `https://nuget.pkg.github.com/AnnabiGihed/index.json`

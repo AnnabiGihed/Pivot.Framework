@@ -5,11 +5,16 @@ on:
     branches: [ master, main, develop ]
   pull_request:
     branches: [ master, main, develop ]
-  workflow_call: 
+  workflow_call:
+
 jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write        # ← fixes the HttpError
+      pull-requests: write # ← needed for PR comments
 
     steps:
     - name: Checkout code
@@ -21,31 +26,28 @@ jobs:
         dotnet-version: '10.x'
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore Pivot.Framework.sln
 
     - name: Build
-      run: dotnet build --no-restore --configuration Release
+      run: dotnet build Pivot.Framework.sln --no-restore --configuration Release
 
     - name: Run tests with coverage
       run: |
-        dotnet test --no-build --configuration Release \
+        dotnet test Pivot.Framework.sln --no-build --configuration Release \
           --collect:"XPlat Code Coverage" \
           --results-directory ./TestResults \
-          --logger "trx;LogFileName=test-results.trx" \
-          --logger "console;verbosity=detailed" \
-          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+          --logger "trx;LogFileName=test-results.trx"
 
     - name: Install ReportGenerator
       run: dotnet tool install --global dotnet-reportgenerator-globaltool
 
-    - name: Generate HTML coverage report
+    - name: Generate coverage report
       run: |
         reportgenerator \
           -reports:"./TestResults/**/coverage.cobertura.xml" \
           -targetdir:"./TestResults/CoverageReport" \
-          -reporttypes:"Html;Cobertura;Badges" \
-          -assemblyfilters:"+Pivot.Framework.*" \
-          -classfilters:"-*.Migrations.*;-*.Designer*"
+          -reporttypes:"Html;Cobertura" \
+          -assemblyfilters:"+Pivot.Framework.*"
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -77,11 +79,17 @@ jobs:
         badge: true
         fail_below_min: false
         format: markdown
-        hide_branch_rate: false
-        hide_complexity: false
-        indicators: true
         output: both
         thresholds: '60 80'
+
+    - name: Write coverage to job summary
+      if: always()                          # ← won't fail if file missing
+      run: |
+        if [ -f code-coverage-results.md ]; then
+          cat code-coverage-results.md >> $GITHUB_STEP_SUMMARY
+        else
+          echo "Coverage report not generated" >> $GITHUB_STEP_SUMMARY
+        fi
 
     - name: Add coverage to PR
       uses: marocchino/sticky-pull-request-comment@v2
@@ -89,7 +97,3 @@ jobs:
       with:
         recreate: true
         path: code-coverage-results.md
-
-    - name: Write coverage to job summary
-      run: cat code-coverage-results.md >> $GITHUB_STEP_SUMMARY
-      if: always()

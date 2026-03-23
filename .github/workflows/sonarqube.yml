@@ -68,7 +68,8 @@ jobs:
           /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
           /d:sonar.host.url="https://sonarcloud.io" `
           /d:sonar.cs.opencover.reportsPaths="TestResults\*\coverage.opencover.xml" `
-          /d:sonar.exclusions="**/Migrations/**,**/*.Designer.cs,**/*AssemblyReference*,**/*.Tests/**"
+          /d:sonar.exclusions="**/Migrations/**,**/*.Designer.cs,**/*AssemblyReference*" `
+          /d:sonar.coverage.exclusions="**/Authentication/**,**/Caching/**,**/*.Tests/**,**/Migrations/**"
 
     - name: Build
       run: dotnet build Pivot.Framework.sln --no-restore --configuration Release
@@ -81,19 +82,13 @@ jobs:
           --results-directory TestResults `
           --logger "trx;LogFileName=test-results.trx"
 
-    - name: Begin SonarQube scan
+    - name: End SonarQube scan
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       shell: powershell
       run: |
-        ${{ runner.temp }}\scanner\dotnet-sonarscanner begin `
-          /k:"AnnabiGihed_Pivot.Framework" `
-          /o:"annabigihed" `
-          /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
-          /d:sonar.host.url="https://sonarcloud.io" `
-          /d:sonar.cs.opencover.reportsPaths="TestResults\*\coverage.opencover.xml" `
-          /d:sonar.exclusions="**/Migrations/**,**/*.Designer.cs,**/*AssemblyReference*" `
-          /d:sonar.coverage.exclusions="**/Authentication/**,**/Caching/**,**/*.Tests/**,**/Migrations/**"
+        ${{ runner.temp }}\scanner\dotnet-sonarscanner end `
+          /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
     - name: Generate coverage report
       shell: powershell

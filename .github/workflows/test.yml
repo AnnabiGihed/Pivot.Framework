@@ -43,7 +43,7 @@ jobs:
           -reports:"./TestResults/**/coverage.cobertura.xml" \
           -targetdir:"./TestResults/CoverageReport" \
           -reporttypes:"Html;Cobertura" \
-          -assemblyfilters:"+Pivot.Framework.*;-*.Tests*" \
+          -assemblyfilters:"+Pivot.Framework.Domain;+Pivot.Framework.Application;+Pivot.Framework.Containers.API;+Pivot.Framework.Infrastructure.Abstraction" \
           -classfilters:"-*.Migrations.*;-*AssemblyReference*;-*.Designer*" \
           -filefilters:"-*.g.cs" \
           -mergehistory

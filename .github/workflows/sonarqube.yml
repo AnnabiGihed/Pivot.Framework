@@ -1,0 +1,109 @@
+name: SonarQube Analysis
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    name: Build and analyze
+    runs-on: windows-latest
+
+    steps:
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: 17
+        distribution: 'zulu'
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.x'
+
+    - name: Cache SonarQube Cloud packages
+      uses: actions/cache@v4
+      with:
+        path: ~\sonar\cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+
+    - name: Cache SonarQube Cloud scanner
+      id: cache-sonar-scanner
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}\scanner
+        key: ${{ runner.os }}-sonar-scanner
+        restore-keys: ${{ runner.os }}-sonar-scanner
+
+    - name: Install SonarQube Cloud scanner
+      if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+      shell: powershell
+      run: |
+        New-Item -Path ${{ runner.temp }}\scanner -ItemType Directory
+        dotnet tool update dotnet-sonarscanner --tool-path ${{ runner.temp }}\scanner
+
+    - name: Install ReportGenerator
+      run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
+    - name: Restore dependencies
+      run: dotnet restore Pivot.Framework.sln
+
+    - name: Begin SonarQube scan
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      shell: powershell
+      run: |
+        ${{ runner.temp }}\scanner\dotnet-sonarscanner begin `
+          /k:"AnnabiGihed_Pivot.Framework" `
+          /o:"annabigihed" `
+          /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
+          /d:sonar.host.url="https://sonarcloud.io" `
+          /d:sonar.cs.opencover.reportsPaths="TestResults\*\coverage.opencover.xml" `
+          /d:sonar.exclusions="**/Migrations/**,**/*.Designer.cs,**/*AssemblyReference*,**/*.Tests/**"
+
+    - name: Build
+      run: dotnet build Pivot.Framework.sln --no-restore --configuration Release
+
+    - name: Run tests with coverage
+      shell: powershell
+      run: |
+        dotnet test Pivot.Framework.sln --no-build --configuration Release `
+          --collect:"XPlat Code Coverage;Format=opencover" `
+          --results-directory TestResults `
+          --logger "trx;LogFileName=test-results.trx"
+
+    - name: End SonarQube scan
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      shell: powershell
+      run: |
+        ${{ runner.temp }}\scanner\dotnet-sonarscanner end `
+          /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+    - name: Generate coverage report
+      shell: powershell
+      run: |
+        reportgenerator `
+          -reports:"TestResults\*\coverage.opencover.xml" `
+          -targetdir:"TestResults\CoverageReport" `
+          -reporttypes:"Html;Cobertura" `
+          -assemblyfilters:"+Pivot.Framework.Domain;+Pivot.Framework.Application;+Pivot.Framework.Containers.API;+Pivot.Framework.Infrastructure.Abstraction" `
+          -classfilters:"-*.Migrations.*;-*AssemblyReference*;-*.Designer*" `
+          -filefilters:"-*.g.cs" `
+          -mergehistory
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-report
+        path: TestResults\CoverageReport

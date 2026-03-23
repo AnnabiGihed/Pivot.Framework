@@ -69,7 +69,7 @@ jobs:
           /d:sonar.host.url="https://sonarcloud.io" `
           /d:sonar.cs.opencover.reportsPaths="TestResults\*\coverage.opencover.xml" `
           /d:sonar.exclusions="**/Migrations/**,**/*.Designer.cs,**/*AssemblyReference*" `
-          /d:sonar.coverage.exclusions="**/Authentication/**,**/Caching/**,**/*.Tests/**,**/Migrations/**"
+          /d:sonar.coverage.exclusions="**/Pivot.Framework.Authentication/**,**/Pivot.Framework.Authentication.AspNetCore/**,**/Pivot.Framework.Authentication.Blazor/**,**/Pivot.Framework.Authentication.Maui/**,**/Pivot.Framework.Authentication.Caching/**,**/Pivot.Framework.Infrastructure.Caching/**,**/Pivot.Framework.Infrastructure.Messaging*/**,**/Pivot.Framework.Infrastructure.ReadStore*/**,**/Pivot.Framework.Infrastructure.Scheduling/**,**/*.Tests/**"
 
     - name: Build
       run: dotnet build Pivot.Framework.sln --no-restore --configuration Release

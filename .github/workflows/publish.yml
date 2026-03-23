@@ -7,6 +7,10 @@ on:
 jobs:
   test:
     uses: ./.github/workflows/test.yml   # reuse the test workflow
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
 
   publish:
     runs-on: ubuntu-latest

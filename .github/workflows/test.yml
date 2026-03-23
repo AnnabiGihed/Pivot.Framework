@@ -5,7 +5,7 @@ on:
     branches: [ master, main, develop ]
   pull_request:
     branches: [ master, main, develop ]
-
+  workflow_call: 
 jobs:
   test:
     name: Run Tests

@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Src\Containers\Pivot.Framework.Containers.API\Pivot.Framework.Containers.API.csproj" />
+    <ProjectReference Include="..\..\Src\Infrastructure\Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore\Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.csproj" />
   </ItemGroup>
 
 </Project>

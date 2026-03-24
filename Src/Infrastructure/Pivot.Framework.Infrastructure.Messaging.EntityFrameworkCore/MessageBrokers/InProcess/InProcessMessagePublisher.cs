@@ -20,7 +20,7 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBr
 ///              Pluggable alternative to <c>RabbitMQPublisher</c> for single-service deployments
 ///              that don't need an external message broker.
 ///
-///              Reuses the same <c>OutboxPublisherService</c> — only the transport differs.
+///              Works with the configured outbox draining mode.
 ///              The outbox guarantees at-least-once delivery even without a broker:
 ///              if the app crashes between <c>SaveChanges</c> and dispatch, the unprocessed
 ///              outbox message will be retried on next startup.

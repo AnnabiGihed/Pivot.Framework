@@ -55,14 +55,20 @@ public sealed class CurrentUser : ICurrentUser
 		}
 	}
 
-	/// <inheritdoc />
-	public IReadOnlyList<string> Roles => User?.Claims
-		.Where(c => c.Type == ClaimTypes.Role)
-		.Select(c => c.Value)
-		.ToList() ?? [];
+    /// <inheritdoc />
+    public IReadOnlyList<string> Roles
+    {
+        get
+        {
+            return User?.Claims
+        .Where(c => c.Type == ClaimTypes.Role)
+        .Select(c => c.Value)
+        .ToList() ?? [];
+        }
+    }
 
-	/// <inheritdoc />
-	public ClaimsPrincipal? Principal => User;
+    /// <inheritdoc />
+    public ClaimsPrincipal? Principal => User;
 
 	/// <inheritdoc />
 	public bool IsInRole(string role) => User?.IsInRole(role) == true;

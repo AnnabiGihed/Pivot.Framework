@@ -47,10 +47,7 @@ public static class KeycloakAuthenticationExtensions
 	///     .WithSwagger("My API", "v1"));
 	/// </code>
 	/// </example>
-	public static IServiceCollection AddKeycloakAuthentication(
-		this IServiceCollection services,
-		IConfiguration configuration,
-		Action<KeycloakAuthenticationOptions>? configure = null)
+	public static IServiceCollection AddKeycloakAuthentication(this IServiceCollection services, IConfiguration configuration, Action<KeycloakAuthenticationOptions>? configure = null)
 	{
 		ArgumentNullException.ThrowIfNull(services);
 		ArgumentNullException.ThrowIfNull(configuration);
@@ -83,10 +80,7 @@ public static class KeycloakAuthenticationExtensions
 	/// <summary>
 	/// Core JWT bearer setup. Always called. Not intended for direct use.
 	/// </summary>
-	internal static IServiceCollection RegisterCoreJwtBearer(
-		this IServiceCollection services,
-		IConfiguration configuration,
-		Action<JwtBearerOptions>? configureJwt = null)
+	internal static IServiceCollection RegisterCoreJwtBearer(this IServiceCollection services, IConfiguration configuration, Action<JwtBearerOptions>? configureJwt = null)
 	{
 		var keycloakOptions = configuration
 			.GetSection(KeycloakOptions.SectionName)
@@ -154,11 +148,7 @@ public static class KeycloakAuthenticationExtensions
 	/// <summary>
 	/// Registers Swagger with Keycloak OAuth2 PKCE. Not intended for direct use.
 	/// </summary>
-	internal static IServiceCollection RegisterSwagger(
-		this IServiceCollection services,
-		IConfiguration configuration,
-		string title,
-		string version)
+	internal static IServiceCollection RegisterSwagger(this IServiceCollection services, IConfiguration configuration, string title, string version)
 	{
 		services.AddEndpointsApiExplorer();
 		services.AddSwaggerGen(c =>

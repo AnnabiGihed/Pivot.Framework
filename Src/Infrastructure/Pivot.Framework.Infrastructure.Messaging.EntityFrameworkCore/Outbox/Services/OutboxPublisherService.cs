@@ -28,10 +28,7 @@ public class OutboxPublisherOptions
 ///              Polling interval is configurable via <see cref="OutboxPublisherOptions"/>.
 /// </summary>
 /// <typeparam name="TContext">The persistence context type for outbox repository resolution.</typeparam>
-public class OutboxPublisherService<TContext>(
-	IServiceProvider serviceProvider,
-	ILogger<OutboxPublisherService<TContext>> logger,
-	IOptions<OutboxPublisherOptions> options) : BackgroundService where TContext : class, IPersistenceContext
+internal sealed class OutboxPublisherService<TContext>(IServiceProvider serviceProvider, ILogger<OutboxPublisherService<TContext>> logger, IOptions<OutboxPublisherOptions> options) : BackgroundService where TContext : class, IPersistenceContext
 {
 	#region Fields
 

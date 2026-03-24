@@ -23,18 +23,17 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.Extension
 /// </summary>
 public static class InProcessPublisherExtensions
 {
-	/// <summary>
-	/// Registers <see cref="InProcessMessagePublisher"/> as the <see cref="IMessagePublisher"/>
-	/// implementation. Outbox messages are deserialized and dispatched locally via
-	/// <c>IDomainEventDispatcher</c> (MediatR) instead of being sent to an external broker.
-	///
-	/// The existing <c>OutboxPublisherService</c> continues to poll the outbox — only the
-	/// transport mechanism changes.
-	/// </summary>
-	/// <param name="services">The service collection to register into.</param>
-	/// <returns>The same <paramref name="services"/> instance for chaining.</returns>
-	public static IServiceCollection AddInProcessMessagePublisher(
-		this IServiceCollection services)
+    /// <summary>
+    /// Registers <see cref="InProcessMessagePublisher"/> as the <see cref="IMessagePublisher"/>
+    /// implementation. Outbox messages are deserialized and dispatched locally via
+    /// <c>IDomainEventDispatcher</c> (MediatR) instead of being sent to an external broker.
+    ///
+    /// This extension selects only the publishing transport.
+    /// Outbox draining mode must be configured separately via AddOutboxDraining(...).
+    /// </summary>
+    /// <param name="services">The service collection to register into.</param>
+    /// <returns>The same <paramref name="services"/> instance for chaining.</returns>
+    public static IServiceCollection AddInProcessMessagePublisher(this IServiceCollection services)
 	{
 		services.AddSingleton<IMessagePublisher, InProcessMessagePublisher>();
 		return services;

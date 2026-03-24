@@ -13,7 +13,7 @@ namespace Pivot.Framework.Containers.API.Middleware;
 /// Purpose     : Processes outbox messages AFTER request completion and transaction commit.
 ///              Must be registered BEFORE TransactionMiddleware.
 /// </summary>
-public sealed class OutboxProcessingMiddleware<TContext> where TContext : DbContext, IPersistenceContext
+internal sealed class OutboxProcessingMiddleware<TContext> where TContext : DbContext, IPersistenceContext
 {
 	#region Fields
 

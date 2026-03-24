@@ -55,7 +55,6 @@ public static class KeycloakRoleHelper
 			logger?.LogDebug(ex, "Keycloak: could not parse realm_access claim — check your Keycloak token mapper configuration.");
 		}
 	}
-
 	private static void FlattenResourceRoles(ClaimsIdentity identity, ILogger? logger)
 	{
 		var claim = identity.FindFirst("resource_access");

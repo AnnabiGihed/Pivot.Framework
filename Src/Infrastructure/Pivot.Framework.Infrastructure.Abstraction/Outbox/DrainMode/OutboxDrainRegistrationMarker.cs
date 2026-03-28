@@ -7,10 +7,21 @@
 /// </summary>
 public sealed class OutboxDrainRegistrationMarker
 {
+    #region Properties
+    /// <summary>
+    /// The outbox drain mode that was registered.
+    /// </summary>
     public OutboxDrainMode Mode { get; }
+    #endregion
 
+    #region Constructors
+    /// <summary>
+    /// Initialises a new instance of <see cref="OutboxDrainRegistrationMarker"/> with the specified drain mode.
+    /// </summary>
+    /// <param name="mode">The outbox drain mode that was registered.</param>
     public OutboxDrainRegistrationMarker(OutboxDrainMode mode)
     {
         Mode = mode;
     }
+    #endregion
 }

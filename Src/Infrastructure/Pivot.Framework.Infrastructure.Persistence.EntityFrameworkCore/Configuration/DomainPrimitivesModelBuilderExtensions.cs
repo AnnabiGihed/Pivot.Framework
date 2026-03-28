@@ -13,6 +13,9 @@ namespace Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Configu
 /// </summary>
 public static class DomainPrimitivesModelBuilderExtensions
 {
+	/// <summary>
+	/// The navigation name for the <see cref="IAuditableEntity.Audit"/> owned property, used to derive consistent column prefixes.
+	/// </summary>
 	private const string AuditNavigationName = nameof(IAuditableEntity.Audit);
 
 	/// <summary>

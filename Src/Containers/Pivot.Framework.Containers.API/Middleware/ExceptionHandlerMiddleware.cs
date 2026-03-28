@@ -82,6 +82,11 @@ public sealed class ExceptionHandlerMiddleware
 
 	#region Private Helpers
 
+	/// <summary>
+	/// Handles an unhandled exception by mapping it to a <see cref="ProblemDetails"/> response and writing it to the HTTP response.
+	/// </summary>
+	/// <param name="httpContext">The current HTTP context.</param>
+	/// <param name="ex">The unhandled exception to process.</param>
 	private async Task HandleExceptionAsync(HttpContext httpContext, Exception ex)
 	{
 		if (httpContext.Response.HasStarted)
@@ -123,6 +128,11 @@ public sealed class ExceptionHandlerMiddleware
 		await httpContext.Response.WriteAsJsonAsync(problem);
 	}
 
+	/// <summary>
+	/// Maps a given exception to an HTTP status code, type string, title, and optional validation errors.
+	/// </summary>
+	/// <param name="ex">The exception to map.</param>
+	/// <returns>A tuple containing the HTTP status code, type, title, and optional validation errors.</returns>
 	private (HttpStatusCode StatusCode, string Type, string Title, IReadOnlyCollection<Error>? Errors) MapException(Exception ex)
 	{
 		switch (ex)
@@ -162,6 +172,13 @@ public sealed class ExceptionHandlerMiddleware
 		}
 	}
 
+	/// <summary>
+	/// Builds the detail string for the ProblemDetails response.
+	/// In production, returns <c>null</c> to avoid leaking internal information.
+	/// In non-production environments, returns the full exception string for debugging.
+	/// </summary>
+	/// <param name="ex">The exception to describe.</param>
+	/// <returns>The detail string, or <c>null</c> in production.</returns>
 	private string? BuildDetail(Exception ex)
 	{
 		// In production: do not expose stack trace or internal exception details.

@@ -9,6 +9,9 @@
 public sealed class KeycloakOptions
 {
 	#region Constants
+	/// <summary>
+	/// The appsettings.json section name used to bind this options class.
+	/// </summary>
 	public const string SectionName = "Keycloak";
 	#endregion
 

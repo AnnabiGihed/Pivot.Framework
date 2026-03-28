@@ -15,9 +15,13 @@ namespace Pivot.Framework.Authentication.AspNetCore.Options;
 public sealed class KeycloakAuthenticationOptions
 {
 	#region Internal State
+	/// <summary>Whether <see cref="ICurrentUser"/> and <see cref="IHttpContextAccessor"/> should be registered.</summary>
 	internal bool UseCurrentUser { get; private set; }
+	/// <summary>Whether Swagger with Keycloak OAuth2 PKCE should be registered.</summary>
 	internal bool UseSwagger { get; private set; }
+	/// <summary>The Swagger document title, set when <see cref="UseSwagger"/> is <c>true</c>.</summary>
 	internal string? SwaggerTitle { get; private set; }
+	/// <summary>The Swagger document version, set when <see cref="UseSwagger"/> is <c>true</c>.</summary>
 	internal string? SwaggerVersion { get; private set; }
 
 	/// <summary>

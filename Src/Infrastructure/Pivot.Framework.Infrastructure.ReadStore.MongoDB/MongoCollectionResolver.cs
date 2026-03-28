@@ -3,7 +3,9 @@ using MongoDB.Driver;
 namespace Pivot.Framework.Infrastructure.ReadStore.MongoDB;
 
 /// <summary>
-/// Resolves MongoDB collections using the type name as the collection name convention.
+/// Author      : Gihed Annabi
+/// Date        : 03-2026
+/// Purpose     : Resolves MongoDB collections using the type name as the collection name convention.
 /// </summary>
 internal static class MongoCollectionResolver
 {

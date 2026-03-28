@@ -9,7 +9,9 @@ using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessagePu
 namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.Outbox.Services;
 
 /// <summary>
-/// Configuration options for <see cref="OutboxPublisherService{TContext}"/>.
+/// Author      : Gihed Annabi
+/// Date        : 03-2026
+/// Purpose     : Configuration options for <see cref="OutboxPublisherService{TContext}"/>.
 /// </summary>
 public class OutboxPublisherOptions
 {

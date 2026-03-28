@@ -6,8 +6,10 @@ using Pivot.Framework.Infrastructure.Abstraction.Scheduling.Configurations;
 namespace Pivot.Framework.Infrastructure.Scheduling.Services;
 
 /// <summary>
-/// Implementation of the IRecurringJobManager interface for managing Hangfire recurring jobs.
-/// Supports parameterized job functions and operations like create, modify, delete, and run now.
+/// Author      : Gihed Annabi
+/// Date        : 03-2026
+/// Purpose     : Implementation of the IRecurringJobManager interface for managing Hangfire recurring jobs.
+///              Supports parameterized job functions and operations like create, modify, delete, and run now.
 /// </summary>
 /// <typeparam name="TIdentifier">The type of the unique identifier for jobs.</typeparam>
 /// <typeparam name="TParams">The type of the parameters for the job function.</typeparam>

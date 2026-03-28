@@ -25,6 +25,11 @@ public static class AddKeycloakAuthenticationServiceInstaller
 	///   <item>Swagger / OpenAPI with Keycloak OAuth2 PKCE security definition</item>
 	/// </list>
 	/// </summary>
+	/// <param name="services">The service collection to register the authentication stack into.</param>
+	/// <param name="configuration">The application configuration containing the Keycloak and Redis sections.</param>
+	/// <param name="swaggerTitle">The title to display in the Swagger UI (e.g. "My API").</param>
+	/// <param name="swaggerVersion">The Swagger document version (e.g. "v1"). Defaults to "v1".</param>
+	/// <returns>The updated service collection.</returns>
 	public static IServiceCollection AddKeycloakAuthentication(this IServiceCollection services, IConfiguration configuration, string swaggerTitle, string swaggerVersion = "v1")
 	{
 		ArgumentNullException.ThrowIfNull(services);

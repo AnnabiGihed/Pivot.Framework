@@ -64,6 +64,7 @@ public abstract class ApiController : ControllerBase
 		};
 	}
 
+	/// <summary>Returns a 404 Not Found response with ProblemDetails for the given failed result.</summary>
 	private ActionResult HandleNotFoundFailure(Result result) =>
 		NotFound(CreateProblemDetails(
 			title: "Not Found",
@@ -71,6 +72,7 @@ public abstract class ApiController : ControllerBase
 			error: result.Error,
 			validationErrors: (result as IValidationResult)?.Errors));
 
+	/// <summary>Returns a 409 Conflict response with ProblemDetails for the given failed result.</summary>
 	private ActionResult HandleConflictFailure(Result result) =>
 		Conflict(CreateProblemDetails(
 			title: "Conflict",
@@ -78,6 +80,7 @@ public abstract class ApiController : ControllerBase
 			error: result.Error,
 			validationErrors: (result as IValidationResult)?.Errors));
 
+	/// <summary>Returns a 401 Unauthorized response with ProblemDetails for the given failed result.</summary>
 	private ActionResult HandleUnauthorizedFailure(Result result) =>
 		Unauthorized(CreateProblemDetails(
 			title: "Unauthorized",
@@ -85,6 +88,7 @@ public abstract class ApiController : ControllerBase
 			error: result.Error,
 			validationErrors: (result as IValidationResult)?.Errors));
 
+	/// <summary>Returns a 403 Forbidden response with ProblemDetails for the given failed result.</summary>
 	private ActionResult HandleForbiddenFailure(Result result) =>
 		StatusCode(StatusCodes.Status403Forbidden, CreateProblemDetails(
 			title: "Forbidden",
@@ -92,6 +96,7 @@ public abstract class ApiController : ControllerBase
 			error: result.Error,
 			validationErrors: (result as IValidationResult)?.Errors));
 
+	/// <summary>Returns a 400 Bad Request response with ProblemDetails for the given failed result.</summary>
 	private ActionResult HandleBadRequestFailure(Result result) =>
 		BadRequest(CreateProblemDetails(
 			title: result is IValidationResult ? "Validation Error" : "Bad Request",
@@ -99,6 +104,14 @@ public abstract class ApiController : ControllerBase
 			error: result.Error,
 			validationErrors: (result as IValidationResult)?.Errors));
 
+	/// <summary>
+	/// Constructs a <see cref="ProblemDetails"/> instance from the given error and optional validation errors.
+	/// </summary>
+	/// <param name="title">The problem title displayed to the client.</param>
+	/// <param name="status">The HTTP status code for the problem.</param>
+	/// <param name="error">The domain error that caused the failure.</param>
+	/// <param name="validationErrors">Optional collection of validation errors to include in the extensions.</param>
+	/// <returns>A configured <see cref="ProblemDetails"/> instance.</returns>
 	private static ProblemDetails CreateProblemDetails(
 		string title,
 		int status,
@@ -150,6 +163,11 @@ public abstract class ApiController : ControllerBase
 		};
 	}
 
+	/// <summary>
+	/// Creates a <see cref="NotFoundException"/> from the given failed result.
+	/// </summary>
+	/// <param name="result">The failed result containing error information.</param>
+	/// <returns>A <see cref="NotFoundException"/> to be thrown by the exception handling middleware.</returns>
 	private static Exception CreateNotFoundException(Result result)
 	{
 		// Your NotFoundException expects (name, key). We do not have a natural "key" here.
@@ -158,6 +176,11 @@ public abstract class ApiController : ControllerBase
 		return new NotFoundException(result.Error.Code, result.Error.Message);
 	}
 
+	/// <summary>
+	/// Creates a <see cref="BadRequestException"/> from the given failed result, including validation errors if present.
+	/// </summary>
+	/// <param name="result">The failed result containing error information.</param>
+	/// <returns>A <see cref="BadRequestException"/> to be thrown by the exception handling middleware.</returns>
 	private static Exception CreateBadRequestException(Result result)
 	{
 		return result is IValidationResult validationResult

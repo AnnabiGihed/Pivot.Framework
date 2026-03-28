@@ -35,7 +35,9 @@ namespace Pivot.Framework.Authentication.Blazor.Services;
 public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 {
 	#region Constants
+	/// <summary>The name of the HttpOnly session cookie stored in the browser.</summary>
 	internal const string SessionCookieName = "kc_session";
+	/// <summary>Number of random bytes used to generate the opaque session ID.</summary>
 	private const int SessionIdBytes = 32;
 	#endregion
 
@@ -49,24 +51,41 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 	#endregion
 
 	#region Circuit-scoped state (one instance per Blazor circuit)
+	/// <summary>The opaque session ID stored in the browser's HttpOnly cookie.</summary>
 	private string? _sessionId;
+	/// <summary>The claims principal of the currently authenticated user.</summary>
 	private ClaimsPrincipal? _user;
+	/// <summary>The current Blazor token session holding the OAuth2 token set and flow state.</summary>
 	private BlazorTokenSession? _session;
 	/// <summary>
 	/// Cached Keycloak OIDC configuration (signing keys).
 	/// </summary>
 	private OpenIdConnectConfiguration? _oidcConfig;
+	/// <summary>Lock for thread-safe lazy loading of the OIDC configuration.</summary>
 	private readonly SemaphoreSlim _oidcLock = new(1, 1);
+	/// <summary>Lock for thread-safe token refresh operations.</summary>
 	private readonly SemaphoreSlim _refreshLock = new(1, 1);
 	#endregion
 
 	#region Public API
+	/// <inheritdoc />
 	public ClaimsPrincipal? User => _user;
+	/// <inheritdoc />
 	public event EventHandler<AuthStateChangedEventArgs>? AuthStateChanged;
+	/// <inheritdoc />
 	public bool IsAuthenticated => _session is not null && _session.HasTokens && !_session.IsExpired;
 	#endregion
 
 	#region Constructor
+	/// <summary>
+	/// Initialises a new instance of <see cref="KeycloakAuthService"/> with the required dependencies.
+	/// </summary>
+	/// <param name="options">The Keycloak configuration options.</param>
+	/// <param name="sessionStore">The Redis-backed session store for server-side token persistence.</param>
+	/// <param name="httpClientFactory">The factory used to create the HTTP client for Keycloak token requests.</param>
+	/// <param name="httpContextAccessor">The HTTP context accessor for reading and writing session cookies.</param>
+	/// <param name="nav">The Blazor navigation manager used for redirects.</param>
+	/// <param name="logger">The logger for diagnostic output.</param>
 	public KeycloakAuthService(	IOptions<KeycloakOptions> options, IBlazorTokenSessionStore sessionStore, IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor, NavigationManager nav, ILogger<KeycloakAuthService> logger)
 	{
 		_nav = nav;
@@ -291,6 +310,12 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 	#endregion
 
 	#region Restore session from cookie
+	/// <summary>
+	/// Attempts to restore an authenticated session from the HttpOnly session cookie.
+	/// Refreshes the token if it is expired but the refresh token is still valid.
+	/// </summary>
+	/// <param name="ct">Cancellation token.</param>
+	/// <returns><c>true</c> if the session was successfully restored; otherwise <c>false</c>.</returns>
 	private async Task<bool> InitialiseFromSessionAsync(CancellationToken ct)
 	{
 		try
@@ -370,12 +395,23 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 	#endregion
 
 	#region Internal refresh
+	/// <summary>
+	/// Fires the <see cref="AuthStateChanged"/> event with the current user and the given authentication flag.
+	/// </summary>
+	/// <param name="isAuthenticated">Whether the user is currently authenticated.</param>
 	private void NotifyAuthStateChanged(bool isAuthenticated)
 	{
 		AuthStateChanged?.Invoke(
 			this, new AuthStateChangedEventArgs(isAuthenticated, _user));
 	}
 
+	/// <summary>
+	/// Performs a token refresh under a lock. When <paramref name="force"/> is <c>true</c>, refreshes
+	/// unconditionally; otherwise skips the refresh if the current token is still valid.
+	/// </summary>
+	/// <param name="force">When <c>true</c>, forces the refresh regardless of token expiry.</param>
+	/// <param name="ct">Cancellation token.</param>
+	/// <returns>A fresh access token string.</returns>
 	private async Task<string> RefreshInternalAsync(bool force, CancellationToken ct)
 	{
 		await _refreshLock.WaitAsync(ct);
@@ -413,6 +449,11 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 	#endregion
 
 	#region Token exchange (Keycloak token endpoint)
+	/// <summary>
+	/// Calls Keycloak's token revocation endpoint to revoke the provided refresh token server-side.
+	/// </summary>
+	/// <param name="refreshToken">The refresh token to revoke.</param>
+	/// <param name="ct">Cancellation token.</param>
 	private async Task RevokeTokenAsync(string refreshToken, CancellationToken ct)
 	{
 		var body = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -425,6 +466,12 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 		await _http.PostAsync(
 			$"{_options.IssuerUrl}/protocol/openid-connect/revoke", body, ct);
 	}
+	/// <summary>
+	/// Builds the refresh_token grant request and posts it to the Keycloak token endpoint.
+	/// </summary>
+	/// <param name="refreshToken">The refresh token to exchange for a new token set.</param>
+	/// <param name="ct">Cancellation token.</param>
+	/// <returns>The new token response from Keycloak.</returns>
 	private Task<KeycloakTokenResponse> RefreshTokenGrantAsync(string refreshToken, CancellationToken ct)
 	{
 		var body = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -436,6 +483,12 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 
 		return PostToTokenEndpointAsync(body, ct);
 	}
+	/// <summary>
+	/// Posts a form body to the Keycloak token endpoint and deserializes the JSON response.
+	/// </summary>
+	/// <param name="body">The URL-encoded form body for the token request.</param>
+	/// <param name="ct">Cancellation token.</param>
+	/// <returns>The deserialized token response.</returns>
 	private async Task<KeycloakTokenResponse> PostToTokenEndpointAsync(FormUrlEncodedContent body, CancellationToken ct)
 	{
 		var response = await _http.PostAsync(_options.TokenUrl, body, ct);
@@ -449,6 +502,14 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 		return await response.Content.ReadFromJsonAsync<KeycloakTokenResponse>(cancellationToken: ct) ?? throw new InvalidOperationException(
 				"Keycloak returned an empty token response.");
 	}
+	/// <summary>
+	/// Builds the authorization_code grant request and posts it to the Keycloak token endpoint.
+	/// </summary>
+	/// <param name="code">The authorization code from the Keycloak callback.</param>
+	/// <param name="codeVerifier">The PKCE code verifier matching the challenge sent at login.</param>
+	/// <param name="redirectUri">The redirect URI that was used during the authorization request.</param>
+	/// <param name="ct">Cancellation token.</param>
+	/// <returns>The token response from Keycloak.</returns>
 	private Task<KeycloakTokenResponse> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri, CancellationToken ct)
 	{
 		var body = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -573,6 +634,9 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 	#endregion
 
 	#region Cookie management
+	/// <summary>
+	/// Deletes the session cookie from the current HTTP response.
+	/// </summary>
 	private void DeleteSessionCookie()
 	{
 		var ctx = _httpContextAccessor.HttpContext;
@@ -580,11 +644,21 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 
 		ctx.Response.Cookies.Delete(SessionCookieName);
 	}
+	/// <summary>
+	/// Reads the session ID from the HttpOnly session cookie on the current HTTP request.
+	/// Returns <c>null</c> if the cookie is absent.
+	/// </summary>
+	/// <returns>The session ID string, or <c>null</c> if not present.</returns>
 	private string? ReadSessionIdFromCookie()
 	{
 		var ctx = _httpContextAccessor.HttpContext;
 		return ctx?.Request.Cookies.TryGetValue(SessionCookieName, out var id) == true ? id : null;
 	}
+	/// <summary>
+	/// Appends the session cookie to the current HTTP response.
+	/// </summary>
+	/// <param name="sessionId">The opaque session ID to store in the cookie.</param>
+	/// <param name="persistent">When <c>true</c>, sets a 1-day expiry; otherwise the cookie is session-scoped.</param>
 	private void SetSessionCookie(string sessionId, bool persistent)
 	{
 		var ctx = _httpContextAccessor.HttpContext;
@@ -602,10 +676,22 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 	#endregion
 
 	#region URL builders
+	/// <summary>
+	/// Builds the absolute callback URI used as the OAuth2 redirect_uri.
+	/// </summary>
+	/// <returns>The callback URI string.</returns>
 	private string BuildCallbackUri()
 	{
 		return $"{_nav.BaseUri.TrimEnd('/')}/auth/callback";
 	}
+	/// <summary>
+	/// Builds the Keycloak authorization endpoint URL with all required PKCE and OIDC parameters.
+	/// </summary>
+	/// <param name="codeChallenge">The PKCE code challenge (S256).</param>
+	/// <param name="state">The combined OAuth2 state and session ID parameter.</param>
+	/// <param name="nonce">The OIDC nonce for replay protection.</param>
+	/// <param name="redirectUri">The OAuth2 redirect URI.</param>
+	/// <returns>The full authorization URL to redirect the browser to.</returns>
 	private string BuildAuthUrl(string codeChallenge, string state, string nonce, string redirectUri)
 	{
 		var scopes = Uri.EscapeDataString(_options.Scopes);
@@ -622,19 +708,36 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 	#endregion
 
 	#region Crypto helpers
+	/// <summary>
+	/// Generates a cryptographically random Base64Url-encoded string (16 bytes).
+	/// </summary>
+	/// <returns>A random URL-safe string suitable for use as OAuth2 state or OIDC nonce.</returns>
 	private static string GenerateRandom()
 	{
 		return Base64UrlEncode(RandomNumberGenerator.GetBytes(16));
 	}
+	/// <summary>
+	/// Generates a cryptographically random Base64Url-encoded session ID of <see cref="SessionIdBytes"/> bytes.
+	/// </summary>
+	/// <returns>A random session ID string used as the Redis key and cookie value.</returns>
 	private static string GenerateSessionId()
 	{
 		return Base64UrlEncode(RandomNumberGenerator.GetBytes(SessionIdBytes));
 	}
+	/// <summary>
+	/// Encodes a byte array as a URL-safe Base64 string with no padding characters.
+	/// </summary>
+	/// <param name="input">The byte array to encode.</param>
+	/// <returns>A URL-safe Base64 string.</returns>
 	private static string Base64UrlEncode(byte[] input)
 	{
 		return Convert.ToBase64String(input)
 				.TrimEnd('=').Replace('+', '-').Replace('/', '_');
 	}
+	/// <summary>
+	/// Generates a PKCE code verifier and its corresponding S256 code challenge.
+	/// </summary>
+	/// <returns>A tuple of (verifier, challenge) strings for the PKCE flow.</returns>
 	private static (string verifier, string challenge) GeneratePkce()
 	{
 		var verifier = Base64UrlEncode(RandomNumberGenerator.GetBytes(32));

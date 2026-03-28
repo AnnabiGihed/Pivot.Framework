@@ -16,15 +16,21 @@ namespace Pivot.Framework.Authentication.Blazor.Storage;
 public sealed class KeycloakTokenStorage : IKeycloakTokenStorage
 {
 	#region Constants
+	/// <summary>The localStorage key used to persist the Keycloak token set.</summary>
 	private const string StorageKey = "keycloak_token_set";
 	#endregion
 
 	#region Dependencies
 	private readonly IJSRuntime _js;
+	/// <summary>Lock for thread-safe access to localStorage operations.</summary>
 	private readonly SemaphoreSlim _lock = new(1, 1);
 	#endregion
 
 	#region Constructor
+	/// <summary>
+	/// Initialises a new instance of <see cref="KeycloakTokenStorage"/> with the provided JS runtime.
+	/// </summary>
+	/// <param name="js">The JS runtime used to invoke browser localStorage operations.</param>
 	public KeycloakTokenStorage(IJSRuntime js)
 	{
 		_js = js;

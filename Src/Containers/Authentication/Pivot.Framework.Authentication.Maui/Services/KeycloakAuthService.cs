@@ -40,24 +40,38 @@ public sealed class KeycloakAuthService : IKeycloakAuthService
 	#endregion
 
 	#region State
+	/// <summary>The claims principal of the currently authenticated user.</summary>
 	private ClaimsPrincipal? _user;
+	/// <summary>The current in-memory Keycloak token set.</summary>
 	private KeycloakTokenSet? _current;
+	/// <summary>Lock for thread-safe token refresh operations.</summary>
 	private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
 	/// <summary>
 	/// Cached OIDC configuration including the JWKS signing keys.
 	/// </summary>
 	private OpenIdConnectConfiguration? _oidcConfig;
+	/// <summary>Lock for thread-safe lazy loading of the OIDC configuration.</summary>
 	private readonly SemaphoreSlim _oidcLock = new(1, 1);
 	#endregion
 
 	#region Public API
+	/// <inheritdoc />
 	public ClaimsPrincipal? User => _user;
+	/// <inheritdoc />
 	public event EventHandler<AuthStateChangedEventArgs>? AuthStateChanged;
+	/// <inheritdoc />
 	public bool IsAuthenticated => _current is not null && !_current.IsExpired;
 	#endregion
 
 	#region Constructor
+	/// <summary>
+	/// Initialises a new instance of <see cref="KeycloakAuthService"/> with the required dependencies.
+	/// </summary>
+	/// <param name="options">The Keycloak configuration options.</param>
+	/// <param name="storage">The platform-specific secure token storage.</param>
+	/// <param name="httpClientFactory">The factory used to create the HTTP client for Keycloak token requests.</param>
+	/// <param name="logger">The logger for diagnostic output.</param>
 	public KeycloakAuthService(IOptions<KeycloakOptions> options, IKeycloakTokenStorage storage, IHttpClientFactory httpClientFactory, ILogger<KeycloakAuthService> logger)
 	{
 		_options = options.Value;
@@ -226,10 +240,22 @@ public sealed class KeycloakAuthService : IKeycloakAuthService
 	#endregion
 
 	#region Internal refresh
+	/// <summary>
+	/// Fires the <see cref="AuthStateChanged"/> event with the current user and the given authentication flag.
+	/// </summary>
+	/// <param name="isAuthenticated">Whether the user is currently authenticated.</param>
 	private void NotifyAuthStateChanged(bool isAuthenticated)
 	{
 		AuthStateChanged?.Invoke(this, new AuthStateChangedEventArgs(isAuthenticated, _user));
 	}
+
+	/// <summary>
+	/// Performs a token refresh under a lock, saves the new tokens to storage, and notifies subscribers.
+	/// When <paramref name="force"/> is <c>true</c>, refreshes unconditionally; otherwise skips if the token is still valid.
+	/// </summary>
+	/// <param name="force">When <c>true</c>, forces the refresh regardless of token expiry.</param>
+	/// <param name="ct">Cancellation token.</param>
+	/// <returns>A fresh access token string.</returns>
 	private async Task<string> RefreshInternalAsync(bool force, CancellationToken ct)
 	{
 		await _refreshLock.WaitAsync(ct);
@@ -250,6 +276,12 @@ public sealed class KeycloakAuthService : IKeycloakAuthService
 			_refreshLock.Release();
 		}
 	}
+	/// <summary>
+	/// Validates the access token, updates the in-memory state, persists the token set to storage,
+	/// and fires the <see cref="AuthStateChanged"/> event.
+	/// </summary>
+	/// <param name="tokens">The new Keycloak token set to persist and activate.</param>
+	/// <param name="ct">Cancellation token.</param>
 	private async Task PersistAndNotify(KeycloakTokenSet tokens, CancellationToken ct)
 	{
 		_user = await ValidateAndParseAccessTokenAsync(tokens.AccessToken, ct);
@@ -260,6 +292,11 @@ public sealed class KeycloakAuthService : IKeycloakAuthService
 	#endregion
 
 	#region Token exchange
+	/// <summary>
+	/// Calls Keycloak's token revocation endpoint to revoke the provided refresh token server-side.
+	/// </summary>
+	/// <param name="refreshToken">The refresh token to revoke.</param>
+	/// <param name="ct">Cancellation token.</param>
 	private async Task RevokeTokenAsync(string refreshToken, CancellationToken ct)
 	{
 		var body = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -271,6 +308,12 @@ public sealed class KeycloakAuthService : IKeycloakAuthService
 
 		await _http.PostAsync($"{_options.IssuerUrl}/protocol/openid-connect/revoke", body, ct);
 	}
+	/// <summary>
+	/// Builds the refresh_token grant request and posts it to the Keycloak token endpoint.
+	/// </summary>
+	/// <param name="refreshToken">The refresh token to exchange for a new token set.</param>
+	/// <param name="ct">Cancellation token.</param>
+	/// <returns>The new token set from Keycloak.</returns>
 	private Task<KeycloakTokenSet> RefreshTokenGrantAsync(string refreshToken, CancellationToken ct)
 	{
 		var body = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -282,6 +325,12 @@ public sealed class KeycloakAuthService : IKeycloakAuthService
 
 		return PostToTokenEndpointAsync(body, ct);
 	}
+	/// <summary>
+	/// Posts a form body to the Keycloak token endpoint, deserializes the JSON response, and maps it to a <see cref="KeycloakTokenSet"/>.
+	/// </summary>
+	/// <param name="body">The URL-encoded form body for the token request.</param>
+	/// <param name="ct">Cancellation token.</param>
+	/// <returns>The deserialized and mapped <see cref="KeycloakTokenSet"/>.</returns>
 	private async Task<KeycloakTokenSet> PostToTokenEndpointAsync(FormUrlEncodedContent body, CancellationToken ct)
 	{
 		var response = await _http.PostAsync(_options.TokenUrl, body, ct);
@@ -305,6 +354,14 @@ public sealed class KeycloakAuthService : IKeycloakAuthService
 			RefreshTokenExpiresAt = refreshExpiresAt
 		};
 	}
+	/// <summary>
+	/// Builds the authorization_code grant request and posts it to the Keycloak token endpoint.
+	/// </summary>
+	/// <param name="code">The authorization code from the Keycloak callback.</param>
+	/// <param name="codeVerifier">The PKCE code verifier matching the challenge sent at login.</param>
+	/// <param name="redirectUri">The custom scheme redirect URI used during the authorization request.</param>
+	/// <param name="ct">Cancellation token.</param>
+	/// <returns>The token set from Keycloak.</returns>
 	private Task<KeycloakTokenSet> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri, CancellationToken ct)
 	{
 		var body = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -433,15 +490,28 @@ public sealed class KeycloakAuthService : IKeycloakAuthService
 	#endregion
 
 	#region PKCE + state helpers
+	/// <summary>
+	/// Generates a cryptographically random Base64Url-encoded string (16 bytes) for use as OAuth2 state or OIDC nonce.
+	/// </summary>
+	/// <returns>A random URL-safe string.</returns>
 	private static string GenerateState()
 	{
 		return Base64UrlEncode(RandomNumberGenerator.GetBytes(16));
 	}
+	/// <summary>
+	/// Encodes a byte array as a URL-safe Base64 string with no padding characters.
+	/// </summary>
+	/// <param name="input">The byte array to encode.</param>
+	/// <returns>A URL-safe Base64 string.</returns>
 	private static string Base64UrlEncode(byte[] input)
 	{
 		return Convert.ToBase64String(input)
 				.TrimEnd('=').Replace('+', '-').Replace('/', '_');
 	}
+	/// <summary>
+	/// Generates a PKCE code verifier and its corresponding S256 code challenge.
+	/// </summary>
+	/// <returns>A tuple of (verifier, challenge) strings for the PKCE flow.</returns>
 	private static (string verifier, string challenge) GeneratePkce()
 	{
 		var bytes = RandomNumberGenerator.GetBytes(32);
@@ -453,6 +523,14 @@ public sealed class KeycloakAuthService : IKeycloakAuthService
 	#endregion
 
 	#region Auth URL builder
+	/// <summary>
+	/// Builds the Keycloak authorization endpoint URL with all required PKCE and OIDC parameters.
+	/// </summary>
+	/// <param name="codeChallenge">The PKCE code challenge (S256).</param>
+	/// <param name="state">The OAuth2 state parameter for CSRF protection.</param>
+	/// <param name="nonce">The OIDC nonce for replay protection.</param>
+	/// <param name="redirectUri">The custom scheme redirect URI.</param>
+	/// <returns>The full authorization URL to open in the system browser.</returns>
 	private string BuildAuthUrl(string codeChallenge, string state, string nonce, string redirectUri)
 	{
 		var scopes = Uri.EscapeDataString(_options.Scopes);

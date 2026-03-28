@@ -16,10 +16,17 @@ public sealed class CurrentUser : ICurrentUser
 	#endregion
 
 	#region Constructor
+	/// <summary>
+	/// Initialises a new instance of <see cref="CurrentUser"/> with the provided HTTP context accessor.
+	/// </summary>
+	/// <param name="accessor">The HTTP context accessor used to resolve the current request's user principal.</param>
 	public CurrentUser(IHttpContextAccessor accessor) => _accessor = accessor;
 	#endregion
 
 	#region Private helpers
+	/// <summary>
+	/// The claims principal of the current HTTP request user, or <c>null</c> if no HTTP context is available.
+	/// </summary>
 	private ClaimsPrincipal? User => _accessor.HttpContext?.User;
 	#endregion
 

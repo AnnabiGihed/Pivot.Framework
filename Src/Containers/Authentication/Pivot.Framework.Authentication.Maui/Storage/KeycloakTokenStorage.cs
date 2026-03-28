@@ -13,10 +13,12 @@ namespace Pivot.Framework.Authentication.Maui.Storage;
 public sealed class KeycloakTokenStorage : IKeycloakTokenStorage
 {
 	#region Constants
+	/// <summary>The SecureStorage key used to persist the Keycloak token set.</summary>
 	private const string StorageKey = "keycloak_token_set";
 	#endregion
 
 	#region Fields
+	/// <summary>Lock for thread-safe access to platform SecureStorage operations.</summary>
 	private readonly SemaphoreSlim _lock = new(1, 1);
 	#endregion
 

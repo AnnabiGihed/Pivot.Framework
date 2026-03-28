@@ -15,6 +15,18 @@ namespace Pivot.Framework.Containers.API.Middleware;
 /// </summary>
 public static class OutboxProcessingMiddlewareExtensions
 {
+    #region Public Methods
+    /// <summary>
+    /// Adds the <see cref="OutboxProcessingMiddleware{TContext}"/> to the ASP.NET Core pipeline.
+    /// Only valid when the configured drain mode is <see cref="OutboxDrainMode.ImmediateAfterRequest"/>.
+    /// Must be called after <c>services.AddOutboxDraining&lt;TContext&gt;</c> has been registered.
+    /// </summary>
+    /// <typeparam name="TContext">The EF Core DbContext that implements <see cref="IPersistenceContext"/>.</typeparam>
+    /// <param name="app">The application builder to add the middleware to.</param>
+    /// <returns>The updated <see cref="IApplicationBuilder"/> instance.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when outbox draining has not been configured or when the configured mode is not <see cref="OutboxDrainMode.ImmediateAfterRequest"/>.
+    /// </exception>
     public static IApplicationBuilder UseImmediateOutboxDraining<TContext>(this IApplicationBuilder app)
         where TContext : DbContext, IPersistenceContext
     {
@@ -30,4 +42,5 @@ public static class OutboxProcessingMiddlewareExtensions
 
         return app.UseMiddleware<OutboxProcessingMiddleware<TContext>>();
     }
+    #endregion
 }

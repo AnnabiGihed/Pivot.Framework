@@ -4,8 +4,10 @@ using Polly.CircuitBreaker;
 namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.Shared.Resilience;
 
 /// <summary>
-/// Wraps the Polly retry and circuit breaker policies used by the messaging infrastructure.
-/// Registered as a singleton to avoid bare policy types in the DI container.
+/// Author      : Gihed Annabi
+/// Date        : 03-2026
+/// Purpose     : Wraps the Polly retry and circuit breaker policies used by the messaging infrastructure.
+///              Registered as a singleton to avoid bare policy types in the DI container.
 /// </summary>
 public class MessagingResiliencePolicies
 {

@@ -31,6 +31,11 @@ public static class KeycloakRoleHelper
 	#endregion
 
 	#region Private helpers
+	/// <summary>
+	/// Parses the <c>realm_access.roles</c> JWT claim and adds each role as a <see cref="ClaimTypes.Role"/> claim.
+	/// </summary>
+	/// <param name="identity">The claims identity to mutate.</param>
+	/// <param name="logger">Optional logger for malformed JSON claim diagnostics.</param>
 	private static void FlattenRealmRoles(ClaimsIdentity identity, ILogger? logger)
 	{
 		var claim = identity.FindFirst("realm_access");
@@ -55,6 +60,11 @@ public static class KeycloakRoleHelper
 			logger?.LogDebug(ex, "Keycloak: could not parse realm_access claim — check your Keycloak token mapper configuration.");
 		}
 	}
+	/// <summary>
+	/// Parses the <c>resource_access.{clientId}.roles</c> JWT claim and adds each client role as a <see cref="ClaimTypes.Role"/> claim.
+	/// </summary>
+	/// <param name="identity">The claims identity to mutate.</param>
+	/// <param name="logger">Optional logger for malformed JSON claim diagnostics.</param>
 	private static void FlattenResourceRoles(ClaimsIdentity identity, ILogger? logger)
 	{
 		var claim = identity.FindFirst("resource_access");

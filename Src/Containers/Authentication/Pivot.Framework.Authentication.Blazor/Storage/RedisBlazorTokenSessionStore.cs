@@ -14,6 +14,7 @@ namespace Pivot.Framework.Authentication.Blazor.Storage;
 internal sealed class RedisBlazorTokenSessionStore : IBlazorTokenSessionStore
 {
 	#region Constants
+	/// <summary>The Redis key prefix for all Blazor session entries.</summary>
 	private const string Prefix = "blazor:session:";
 
 	/// <summary>
@@ -25,6 +26,7 @@ internal sealed class RedisBlazorTokenSessionStore : IBlazorTokenSessionStore
 
 	#region Dependencies
 	private readonly IDistributedCache _cache;
+	/// <summary>Shared JSON serializer options: camelCase naming with null values omitted.</summary>
 	private static readonly JsonSerializerOptions JsonOpts = new()
 	{
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -33,6 +35,10 @@ internal sealed class RedisBlazorTokenSessionStore : IBlazorTokenSessionStore
 	#endregion
 
 	#region Constructor
+	/// <summary>
+	/// Initialises a new instance of <see cref="RedisBlazorTokenSessionStore"/> with the provided distributed cache.
+	/// </summary>
+	/// <param name="cache">The distributed cache implementation backed by Redis.</param>
 	public RedisBlazorTokenSessionStore(IDistributedCache cache)
 	{
 		_cache = cache;
@@ -74,6 +80,11 @@ internal sealed class RedisBlazorTokenSessionStore : IBlazorTokenSessionStore
 	#endregion
 
 	#region Private helpers
+	/// <summary>
+	/// Builds the Redis key for a given session ID by prepending the <see cref="Prefix"/>.
+	/// </summary>
+	/// <param name="sessionId">The opaque session ID.</param>
+	/// <returns>The fully qualified Redis key string.</returns>
 	private static string BuildKey(string sessionId) => $"{Prefix}{sessionId}";
 	#endregion
 }

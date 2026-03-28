@@ -17,6 +17,9 @@ internal sealed class RedisCacheService : ICacheService
 	#endregion
 
 	#region Constants
+	/// <summary>
+	/// Shared JSON serializer options: camelCase naming with null values omitted.
+	/// </summary>
 	private static readonly JsonSerializerOptions JsonOptions = new()
 	{
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -25,6 +28,10 @@ internal sealed class RedisCacheService : ICacheService
 	#endregion
 
 	#region Constructor
+	/// <summary>
+	/// Initialises a new instance of <see cref="RedisCacheService"/> with the provided distributed cache.
+	/// </summary>
+	/// <param name="cache">The distributed cache implementation backed by Redis.</param>
 	public RedisCacheService(IDistributedCache cache)
 	{
 		ArgumentNullException.ThrowIfNull(cache);

@@ -15,6 +15,7 @@ namespace Pivot.Framework.Authentication.Caching.Redis;
 internal sealed class RedisDistributedTokenCache : IDistributedTokenCache
 {
 	#region Constants
+	/// <summary>The Redis key prefix for all cached token claim entries.</summary>
 	private const string Prefix = "tkn:claims:";
 	#endregion
 
@@ -23,6 +24,10 @@ internal sealed class RedisDistributedTokenCache : IDistributedTokenCache
 	#endregion
 
 	#region Constructor
+	/// <summary>
+	/// Initialises a new instance of <see cref="RedisDistributedTokenCache"/> with the provided cache service.
+	/// </summary>
+	/// <param name="cache">The Redis-backed cache service used for storing token claims.</param>
 	public RedisDistributedTokenCache(ICacheService cache)
 	{
 		ArgumentNullException.ThrowIfNull(cache);
@@ -55,6 +60,12 @@ internal sealed class RedisDistributedTokenCache : IDistributedTokenCache
 	#endregion
 
 	#region Private Helpers
+	/// <summary>
+	/// Builds the Redis cache key by computing SHA-256 of the access token and prepending the <see cref="Prefix"/>.
+	/// The raw token is never stored as a key.
+	/// </summary>
+	/// <param name="accessToken">The raw access token to hash.</param>
+	/// <returns>The Redis key string.</returns>
 	private static string BuildKey(string accessToken)
 	{
 		var hash = SHA256.HashData(Encoding.UTF8.GetBytes(accessToken));

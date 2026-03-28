@@ -16,6 +16,9 @@ namespace Pivot.Framework.Authentication.AspNetCore.Extensions;
 public static class SwaggerKeycloakExtensions
 {
 	#region Constants
+	/// <summary>
+	/// The OpenAPI security scheme name used for the Keycloak OAuth2 definition.
+	/// </summary>
 	public const string SecuritySchemeName = "oauth2";
 	#endregion
 
@@ -77,6 +80,12 @@ public static class SwaggerKeycloakExtensions
 	#endregion
 
 	#region Helpers
+	/// <summary>
+	/// Adds the Keycloak OAuth2 Authorization Code + PKCE security definition to Swagger using resolved <see cref="KeycloakOptions"/>.
+	/// </summary>
+	/// <param name="options">The Swagger generation options to configure.</param>
+	/// <param name="keycloak">The resolved Keycloak options containing endpoint URLs and client configuration.</param>
+	/// <returns>The updated <see cref="SwaggerGenOptions"/> instance for fluent chaining.</returns>
 	private static SwaggerGenOptions AddKeycloakSecurityDefinition(this SwaggerGenOptions options, KeycloakOptions keycloak)
 	{
 		options.AddSecurityDefinition(SecuritySchemeName, new OpenApiSecurityScheme
@@ -97,6 +106,12 @@ public static class SwaggerKeycloakExtensions
 		return options;
 	}
 
+	/// <summary>
+	/// Parses a space-separated scope string into a dictionary mapping each scope name to itself,
+	/// as required by the Swagger OpenAPI security scopes format.
+	/// </summary>
+	/// <param name="scopes">Space-separated OAuth2 scope names (e.g. "openid profile email").</param>
+	/// <returns>A dictionary of scope name to scope name.</returns>
 	private static Dictionary<string, string> ParseScopes(string scopes)
 	{
 		return scopes

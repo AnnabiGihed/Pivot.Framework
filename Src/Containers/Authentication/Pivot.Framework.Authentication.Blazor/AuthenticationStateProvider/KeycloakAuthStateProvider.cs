@@ -15,10 +15,16 @@ namespace Pivot.Framework.Authentication.Maui.AuthenticationStateProvider;
 public sealed class KeycloakAuthStateProvider : Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, IDisposable
 {
 	#region Fields
+	/// <summary>
+	/// The current authentication state cached for this circuit.
+	/// </summary>
 	private AuthenticationState _current;
 	#endregion
 
 	#region Constants
+	/// <summary>
+	/// A reusable unauthenticated state returned when no user is logged in.
+	/// </summary>
 	private static readonly AuthenticationState Anonymous = new(new ClaimsPrincipal(new ClaimsIdentity()));
 	#endregion
 
@@ -27,6 +33,10 @@ public sealed class KeycloakAuthStateProvider : Microsoft.AspNetCore.Components.
 	#endregion
 
 	#region Constructor
+	/// <summary>
+	/// Initialises a new instance of <see cref="KeycloakAuthStateProvider"/> and subscribes to auth state changes.
+	/// </summary>
+	/// <param name="auth">The Keycloak authentication service that drives the Blazor authentication state.</param>
 	public KeycloakAuthStateProvider(IKeycloakAuthService auth)
 	{
 		_auth = auth;
@@ -44,6 +54,11 @@ public sealed class KeycloakAuthStateProvider : Microsoft.AspNetCore.Components.
 	#endregion
 
 	#region Private helpers
+	/// <summary>
+	/// Handles the <see cref="IKeycloakAuthService.AuthStateChanged"/> event and notifies Blazor components of the updated state.
+	/// </summary>
+	/// <param name="sender">The source of the event.</param>
+	/// <param name="e">The event arguments containing the new authentication state.</param>
 	private void OnAuthStateChanged(object? sender, AuthStateChangedEventArgs e)
 	{
 		_current = e.IsAuthenticated && e.User is not null ? new AuthenticationState(e.User) : Anonymous;

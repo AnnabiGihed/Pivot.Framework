@@ -19,7 +19,11 @@
       "Bash(python3 -c \":*)",
       "Bash(grep 'name=\"\"\"\"Pivot.Framework.Domain\"\"\"\"' TestResults/Domain/*/coverage.cobertura.xml)",
       "Bash(grep 'name=\"\"\"\"Pivot.Framework.Application\"\"\"\"' TestResults/Application/*/coverage.cobertura.xml)",
-      "Bash(grep 'name=\"\"\"\"Pivot.Framework.Infrastructure.Abstraction\"\"\"\"' TestResults/InfraAbstraction/*/coverage.cobertura.xml)"
+      "Bash(grep 'name=\"\"\"\"Pivot.Framework.Infrastructure.Abstraction\"\"\"\"' TestResults/InfraAbstraction/*/coverage.cobertura.xml)",
+      "Bash(grep -v \"\\\\.g\\\\.cs$\")",
+      "Bash(grep -v \"\\\\.Designer\\\\.cs$\")",
+      "Bash(grep -v \"AssemblyInfo\\\\.cs$\")",
+      "Bash(grep -v \"AssemblyAttributes\\\\.cs$\")"
     ]
   }
 }

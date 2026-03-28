@@ -16,8 +16,11 @@ namespace Pivot.Framework.Authentication.Caching.Redis;
 internal sealed class RedisTokenRevocationCache : ITokenRevocationCache
 {
 	#region Constants
+	/// <summary>Redis key prefix for cached token claims.</summary>
 	private const string ClaimsPrefix = "tkn:claims:";
+	/// <summary>Redis key prefix for individually revoked token entries.</summary>
 	private const string RevokedPrefix = "tkn:revoked:";
+	/// <summary>Redis key prefix for global user-revocation sentinel entries.</summary>
 	private const string RevokeAllPrefix = "tkn:revoke-all:";
 	#endregion
 
@@ -33,6 +36,11 @@ internal sealed class RedisTokenRevocationCache : ITokenRevocationCache
 	#endregion
 
 	#region Constructor
+	/// <summary>
+	/// Initialises a new instance of <see cref="RedisTokenRevocationCache"/> with the required cache and options.
+	/// </summary>
+	/// <param name="cache">The Redis-backed cache service used for revocation entries.</param>
+	/// <param name="options">The token revocation options, including the global revocation TTL.</param>
 	public RedisTokenRevocationCache(ICacheService cache, TokenRevocationOptions options)
 	{
 		ArgumentNullException.ThrowIfNull(cache);
@@ -81,21 +89,41 @@ internal sealed class RedisTokenRevocationCache : ITokenRevocationCache
 	#endregion
 
 	#region Key Builders
+	/// <summary>
+	/// Computes the SHA-256 hex string of the given token for use as a Redis key component.
+	/// </summary>
+	/// <param name="token">The raw token string to hash.</param>
+	/// <returns>The hex-encoded SHA-256 hash.</returns>
 	private static string HashToken(string token)
 	{
 		return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 	}
 
+	/// <summary>
+	/// Builds the Redis key for the global user-revocation sentinel keyed by user ID.
+	/// </summary>
+	/// <param name="userId">The Keycloak user's subject (sub) GUID.</param>
+	/// <returns>The Redis key string.</returns>
 	private static string BuildRevokeAllKey(Guid userId)
 	{
 		return $"{RevokeAllPrefix}{userId:D}";
 	}
 
+	/// <summary>
+	/// Builds the Redis key for the claims cache entry for a given access token.
+	/// </summary>
+	/// <param name="accessToken">The raw access token.</param>
+	/// <returns>The Redis key string.</returns>
 	private static string BuildClaimsKey(string accessToken)
 	{
 		return $"{ClaimsPrefix}{HashToken(accessToken)}";
 	}
 
+	/// <summary>
+	/// Builds the Redis key for an individually revoked token entry.
+	/// </summary>
+	/// <param name="accessToken">The raw access token.</param>
+	/// <returns>The Redis key string.</returns>
 	private static string BuildRevokedKey(string accessToken)
 	{
 		return $"{RevokedPrefix}{HashToken(accessToken)}";

@@ -20,6 +20,16 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.Outbox.Ex
 /// </summary>
 public static class OutboxDrainExtensions
 {
+    #region Public Methods
+    /// <summary>
+    /// Registers the outbox draining infrastructure for the given <typeparamref name="TContext"/>.
+    /// Configures the selected drain mode (<see cref="OutboxDrainMode.ImmediateAfterRequest"/> or
+    /// <see cref="OutboxDrainMode.BackgroundPolling"/>) and throws if called more than once.
+    /// </summary>
+    /// <typeparam name="TContext">The EF Core DbContext that implements <see cref="IPersistenceContext"/>.</typeparam>
+    /// <param name="services">The service collection to register the outbox infrastructure into.</param>
+    /// <param name="configure">A delegate to configure <see cref="OutboxDrainOptions"/>.</param>
+    /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddOutboxDraining<TContext>(this IServiceCollection services, Action<OutboxDrainOptions> configure)
         where TContext : DbContext, IPersistenceContext
     {
@@ -46,12 +56,20 @@ public static class OutboxDrainExtensions
 
         return services;
     }
+    #endregion
 
+    #region Private Methods
+    /// <summary>
+    /// Throws <see cref="InvalidOperationException"/> if an outbox drain mode has already been registered,
+    /// enforcing that only one drain mode can be active at a time.
+    /// </summary>
+    /// <param name="services">The service collection to inspect.</param>
     private static void EnforceExclusiveMode(IServiceCollection services)
     {
         var alreadyRegistered = services.Any(x => x.ServiceType == typeof(OutboxDrainRegistrationMarker));
 
-        if (alreadyRegistered)        
+        if (alreadyRegistered)
             throw new InvalidOperationException("An outbox draining mode has already been registered. Only one outbox draining mode can be configured.");
     }
+    #endregion
 }

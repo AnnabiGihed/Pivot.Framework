@@ -23,6 +23,12 @@ public sealed class KeycloakRedisJwtEvents : JwtBearerEvents
 	#endregion
 
 	#region Constructor
+	/// <summary>
+	/// Initialises a new instance of <see cref="KeycloakRedisJwtEvents"/> with the required caching services.
+	/// </summary>
+	/// <param name="tokenCache">The distributed token claims cache backed by Redis.</param>
+	/// <param name="revocationCache">The token revocation cache for blacklisting revoked tokens.</param>
+	/// <param name="logger">The logger for diagnostic output.</param>
 	public KeycloakRedisJwtEvents(IDistributedTokenCache tokenCache, ITokenRevocationCache revocationCache, ILogger<KeycloakRedisJwtEvents> logger)
 	{
 		ArgumentNullException.ThrowIfNull(tokenCache);

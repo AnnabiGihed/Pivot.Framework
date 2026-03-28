@@ -7,6 +7,13 @@
 /// </summary>
 public enum OutboxDrainMode
 {
+    /// <summary>
+    /// The outbox is drained synchronously immediately after each HTTP request completes.
+    /// </summary>
     ImmediateAfterRequest = 1,
+
+    /// <summary>
+    /// The outbox is drained by a background polling service at a configurable interval.
+    /// </summary>
     BackgroundPolling = 2
 }

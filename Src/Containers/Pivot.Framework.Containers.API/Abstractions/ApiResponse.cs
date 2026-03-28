@@ -84,6 +84,12 @@ public sealed class ApiResponse<T>
 
 	#region Private Helpers
 
+	/// <summary>
+	/// Combines the primary error and any additional errors into a single deduplicated, non-null collection.
+	/// </summary>
+	/// <param name="primary">The main domain error from the failed result.</param>
+	/// <param name="extra">Optional additional validation errors to include.</param>
+	/// <returns>A read-only collection of all non-null, non-None errors.</returns>
 	private static IReadOnlyCollection<Error> NormalizeErrors(Error primary, IEnumerable<Error>? extra)
 	{
 		var list = new List<Error>();

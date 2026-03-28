@@ -19,6 +19,11 @@ public sealed class KeycloakAuthorizationMessageHandler : DelegatingHandler
 	#endregion
 
 	#region Constructor
+	/// <summary>
+	/// Initialises a new instance of <see cref="KeycloakAuthorizationMessageHandler"/> with the required dependencies.
+	/// </summary>
+	/// <param name="auth">The Keycloak authentication service used to retrieve and refresh tokens.</param>
+	/// <param name="logger">The logger for diagnostic output.</param>
 	public KeycloakAuthorizationMessageHandler(IKeycloakAuthService auth, ILogger<KeycloakAuthorizationMessageHandler> logger)
 	{
 		_auth = auth;

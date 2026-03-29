@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Pivot.Framework.Domain.Primitives;
 using Pivot.Framework.Application.Abstractions.Correlation;
+using Pivot.Framework.Application.Abstractions.Causation;
 using Pivot.Framework.Application.Abstractions.Messaging.Events;
 using Pivot.Framework.Infrastructure.Abstraction.Inbox;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.RabbitMQ.Models;
@@ -21,10 +22,11 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBr
 /// Date        : 01-2026
 /// Modified    : 03-2026 — Replaced direct MediatR <c>INotification</c> casting with
 ///              <see cref="IDomainEventDispatcher"/> to decouple message receiving from
-///              the dispatching mechanism. Domain events are now dispatched through the
-///              application-layer abstraction, preserving Clean Architecture boundaries.
-///              Added explicit <c>TypeNameHandling.None</c> to prevent Newtonsoft.Json
-///              deserialization attacks.
+///              the dispatching mechanism. Added explicit <c>TypeNameHandling.None</c>
+///              to prevent Newtonsoft.Json deserialization attacks.
+///              Added <see cref="CausationContext"/> propagation: sets CausationId to the
+///              incoming event's EventId so downstream events record their causal chain.
+///              Added version-namespaced deduplication key support for projection rebuilds.
 /// Purpose     : Listens for messages on a RabbitMQ queue, decrypts, decompresses, and
 ///              deserializes them into domain events, then dispatches them to in-process
 ///              handlers via <see cref="IDomainEventDispatcher"/>.
@@ -143,6 +145,13 @@ public class RabbitMQReceiver(
 				var correlationId = ExtractCorrelationId(ea.BasicProperties);
 				CorrelationContext.CorrelationId = correlationId;
 
+				// ── Causation ID propagation ────────────────────────────────────
+				// Extract the EventId from the incoming message. When a handler processes
+				// this event and produces new events, those new events' CausationId will
+				// be set to this EventId, enabling full causal chain reconstruction.
+				var incomingEventId = ExtractHeaderValue(ea.BasicProperties, "EventId");
+				CausationContext.CausationId = incomingEventId;
+
 				var encryptedMessage = ea.Body.ToArray();
 				var compressedMessage = _messageEncryptor.Decrypt(encryptedMessage);
 				var messageBytes = _messageCompressor.Decompress(compressedMessage);
@@ -183,11 +192,18 @@ public class RabbitMQReceiver(
 				// ── Inbox pattern (consumer-side idempotency) ───────────────────
 				// Check whether this message has already been processed by this consumer.
 				// If yes, acknowledge without dispatching to prevent duplicate side effects.
+				//
+				// Supports version-namespaced deduplication keys for projection rebuilds:
+				// - During rebuild (ReplayFlag header present): key = "ProjectionVersion:EventId:ConsumerName"
+				// - During live processing: key = "EventId:ConsumerName"
+				// This ensures replay-era keys don't collide with live keys (MDM spec invariant #29).
 				var inboxService = scope.ServiceProvider.GetService<IInboxService>();
 				if (inboxService is not null)
 				{
 					var consumerName = _settings.ClientProvidedName ?? "RabbitMQReceiver";
-					var alreadyProcessed = await inboxService.HasBeenProcessedAsync(domainEvent.Id, consumerName);
+					var deduplicationId = BuildDeduplicationId(domainEvent.Id, ea.BasicProperties);
+
+					var alreadyProcessed = await inboxService.HasBeenProcessedAsync(deduplicationId, consumerName);
 
 					if (alreadyProcessed)
 					{
@@ -199,6 +215,11 @@ public class RabbitMQReceiver(
 					}
 				}
 
+				// ── Set CausationId to the incoming event's Id ──────────────────
+				// This ensures any events raised by handlers of this event carry
+				// the correct CausationId for causal chain reconstruction.
+				CausationContext.CausationId = domainEvent.Id.ToString();
+
 				_logger.LogDebug("Dispatching domain event: {EventType} ({EventId})", domainEventType.Name, domainEvent.Id);
 
 				await dispatcher.DispatchAsync(domainEvent);
@@ -207,7 +228,8 @@ public class RabbitMQReceiver(
 				if (inboxService is not null)
 				{
 					var consumerName = _settings.ClientProvidedName ?? "RabbitMQReceiver";
-					await inboxService.RecordConsumptionAsync(domainEvent.Id, consumerName);
+					var deduplicationId = BuildDeduplicationId(domainEvent.Id, ea.BasicProperties);
+					await inboxService.RecordConsumptionAsync(deduplicationId, consumerName);
 					await inboxService.SaveChangesAsync();
 				}
 
@@ -250,6 +272,41 @@ public class RabbitMQReceiver(
 		}
 
 		return Guid.NewGuid().ToString();
+	}
+
+	/// <summary>
+	/// Extracts a string header value from message properties.
+	/// </summary>
+	private static string? ExtractHeaderValue(IReadOnlyBasicProperties properties, string headerName)
+	{
+		if (properties.Headers is not null &&
+			properties.Headers.TryGetValue(headerName, out var raw))
+		{
+			if (raw is byte[] bytes)
+				return Encoding.UTF8.GetString(bytes);
+			if (raw is string s)
+				return s;
+		}
+		return null;
+	}
+
+	/// <summary>
+	/// Builds a deduplication ID supporting version-namespaced keys for projection rebuilds.
+	/// During rebuild (ProjectionVersion header present): "ProjectionVersion:EventId"
+	/// During live processing: uses the raw EventId.
+	/// </summary>
+	private static Guid BuildDeduplicationId(Guid eventId, IReadOnlyBasicProperties properties)
+	{
+		var projectionVersion = ExtractHeaderValue(properties, "ProjectionVersion");
+		if (!string.IsNullOrEmpty(projectionVersion))
+		{
+			// Create a deterministic GUID from "ProjectionVersion:EventId" to ensure
+			// replay-era dedup keys don't collide with live keys
+			var compositeKey = $"{projectionVersion}:{eventId}";
+			var bytes = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(compositeKey));
+			return new Guid(bytes);
+		}
+		return eventId;
 	}
 
 	/// <summary>

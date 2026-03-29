@@ -84,6 +84,7 @@ public class RabbitMQPublisher(
 						Headers = new Dictionary<string, object?>
 						{
 							{ "CorrelationId", correlationId },
+							{ "EventId", message.Id.ToString() },
 							{ "Timestamp", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }
 						},
 						Type = message.EventType // Set the fully qualified type name

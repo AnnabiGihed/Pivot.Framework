@@ -21,9 +21,11 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBr
 /// <summary>
 /// Author      : Gihed Annabi
 /// Date        : 01-2026
+/// Modified    : 03-2026 — Added registration for <see cref="IIntegrationEventPublisher"/>
+///              to support first-class integration events alongside domain events.
 /// Purpose     : DI registration extensions for the RabbitMQ messaging infrastructure.
 ///              Registers the message publisher, receiver, compressor, encryptor, serializer,
-///              resilience policies, and outbox repository.
+///              resilience policies, outbox repository, and integration event publisher.
 /// </summary>
 public static class RabbitMQPublisherExtensions
 {

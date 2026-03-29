@@ -23,6 +23,15 @@ public abstract class AggregateRoot<TId> : FullEntity<TId>, IAggregateRoot
 	private readonly List<IDomainEvent> _domainEvents = new();
 	#endregion
 
+	#region Versioning
+	/// <summary>
+	/// Gets the current version of the aggregate.
+	/// Incremented each time a domain event is raised, providing optimistic concurrency
+	/// and enabling event ordering within an aggregate's event stream.
+	/// </summary>
+	public int Version { get; protected set; }
+	#endregion
+
 	#region Constructors
 	/// <summary>
 	/// Initialises a new <see cref="AggregateRoot{TId}"/> with the specified identity.
@@ -70,6 +79,7 @@ public abstract class AggregateRoot<TId> : FullEntity<TId>, IAggregateRoot
 	protected void RaiseDomainEvent(IDomainEvent domainEvent)
 	{
 		ArgumentNullException.ThrowIfNull(domainEvent);
+		Version++;
 		_domainEvents.Add(domainEvent);
 	}
 	#endregion

@@ -151,7 +151,8 @@ public abstract class UnitOfWork<TContext> : IUnitOfWork<TContext>
 			{
 				foreach (var domainEvent in aggregate.GetDomainEvents())
 				{
-					var result = await _domainEventPublisher.PublishAsync(domainEvent, cancellationToken);
+					// Use aggregate-aware overload to capture AggregateType/Id/Version in event envelope
+					var result = await _domainEventPublisher.PublishAsync(domainEvent, aggregate, cancellationToken);
 					if (result.IsFailure)
 						return result;
 				}

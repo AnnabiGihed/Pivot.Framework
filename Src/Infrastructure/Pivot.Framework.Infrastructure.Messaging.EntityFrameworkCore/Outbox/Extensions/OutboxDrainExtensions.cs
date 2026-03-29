@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Pivot.Framework.Infrastructure.Abstraction.Persistence;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.DrainMode;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.Processor;
+using Pivot.Framework.Infrastructure.Abstraction.Outbox.Retry;
 using Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.Outbox.Services;
 using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Processor;
 
@@ -12,6 +13,8 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.Outbox.Ex
 /// <summary>
 /// Author      : Gihed Annabi
 /// Date        : 03-2026
+/// Modified    : 03-2026 — Added configurable <see cref="OutboxRetryOptions"/> for max retry
+///              threshold and dead-letter event emission.
 /// Purpose     : Registers the outbox draining mode for the current application.
 ///              Exactly one mode can be configured:
 ///              - ImmediateAfterRequest
@@ -21,6 +24,7 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.Outbox.Ex
 public static class OutboxDrainExtensions
 {
     #region Public Methods
+
     /// <summary>
     /// Registers the outbox draining infrastructure for the given <typeparamref name="TContext"/>.
     /// Configures the selected drain mode (<see cref="OutboxDrainMode.ImmediateAfterRequest"/> or
@@ -44,6 +48,9 @@ public static class OutboxDrainExtensions
         services.AddSingleton(new OutboxDrainRegistrationMarker(options.Mode));
         services.TryAddScoped<IOutboxProcessor<TContext>, OutboxProcessor<TContext>>();
 
+        // Register default retry options (can be overridden by ConfigureOutboxRetry)
+        services.Configure<OutboxRetryOptions>(_ => { });
+
         if (options.Mode == OutboxDrainMode.BackgroundPolling)
         {
             services.Configure<OutboxPublisherOptions>(o =>
@@ -56,9 +63,28 @@ public static class OutboxDrainExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Configures the outbox retry and dead-letter options.
+    /// Must be called after <see cref="AddOutboxDraining{TContext}"/>.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="configure">A delegate to configure <see cref="OutboxRetryOptions"/>.</param>
+    /// <returns>The same <paramref name="services"/> instance for chaining.</returns>
+    public static IServiceCollection ConfigureOutboxRetry(this IServiceCollection services, Action<OutboxRetryOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        services.Configure(configure);
+
+        return services;
+    }
+
     #endregion
 
     #region Private Methods
+
     /// <summary>
     /// Throws <see cref="InvalidOperationException"/> if an outbox drain mode has already been registered,
     /// enforcing that only one drain mode can be active at a time.
@@ -71,5 +97,6 @@ public static class OutboxDrainExtensions
         if (alreadyRegistered)
             throw new InvalidOperationException("An outbox draining mode has already been registered. Only one outbox draining mode can be configured.");
     }
+
     #endregion
 }

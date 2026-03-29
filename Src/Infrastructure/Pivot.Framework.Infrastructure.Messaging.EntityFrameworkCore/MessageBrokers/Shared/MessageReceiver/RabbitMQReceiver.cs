@@ -6,7 +6,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Pivot.Framework.Domain.Primitives;
+using Pivot.Framework.Application.Abstractions.Correlation;
 using Pivot.Framework.Application.Abstractions.Messaging.Events;
+using Pivot.Framework.Infrastructure.Abstraction.Inbox;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.RabbitMQ.Models;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessageReceiver;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessageEncryptor;
@@ -26,6 +28,11 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBr
 /// Purpose     : Listens for messages on a RabbitMQ queue, decrypts, decompresses, and
 ///              deserializes them into domain events, then dispatches them to in-process
 ///              handlers via <see cref="IDomainEventDispatcher"/>.
+///              Implements the inbox pattern for consumer-side idempotency: before dispatching,
+///              checks whether the message has already been processed; after successful dispatch,
+///              records consumption to prevent duplicate handling on redelivery.
+///              Extracts and propagates the correlation ID from message headers into
+///              <see cref="CorrelationContext"/> for end-to-end distributed tracing.
 /// </summary>
 public class RabbitMQReceiver(
 	IOptions<RabbitMQSettings> options,
@@ -129,6 +136,13 @@ public class RabbitMQReceiver(
 				using var scope = _serviceProvider.CreateScope();
 				var dispatcher = scope.ServiceProvider.GetRequiredService<IDomainEventDispatcher>();
 
+				// ── Correlation ID propagation ──────────────────────────────────
+				// Extract the correlation ID from the incoming message headers and set it
+				// on the ambient CorrelationContext so that all downstream handlers,
+				// outbox writes, and outgoing messages share the same trace.
+				var correlationId = ExtractCorrelationId(ea.BasicProperties);
+				CorrelationContext.CorrelationId = correlationId;
+
 				var encryptedMessage = ea.Body.ToArray();
 				var compressedMessage = _messageEncryptor.Decrypt(encryptedMessage);
 				var messageBytes = _messageCompressor.Decompress(compressedMessage);
@@ -136,7 +150,8 @@ public class RabbitMQReceiver(
 				var messagePayload = Encoding.UTF8.GetString(messageBytes);
 
 				var eventType = ea.BasicProperties.Type;
-				_logger.LogDebug("Message received. Type: {EventType}, Size: {Size} bytes", eventType, messagePayload?.Length ?? 0);
+				_logger.LogDebug("Message received. Type: {EventType}, Size: {Size} bytes, CorrelationId: {CorrelationId}",
+					eventType, messagePayload?.Length ?? 0, correlationId);
 
 				var domainEventType = ea.BasicProperties.Type is not null
 					? Type.GetType(ea.BasicProperties.Type)
@@ -165,9 +180,36 @@ public class RabbitMQReceiver(
 					return;
 				}
 
+				// ── Inbox pattern (consumer-side idempotency) ───────────────────
+				// Check whether this message has already been processed by this consumer.
+				// If yes, acknowledge without dispatching to prevent duplicate side effects.
+				var inboxService = scope.ServiceProvider.GetService<IInboxService>();
+				if (inboxService is not null)
+				{
+					var consumerName = _settings.ClientProvidedName ?? "RabbitMQReceiver";
+					var alreadyProcessed = await inboxService.HasBeenProcessedAsync(domainEvent.Id, consumerName);
+
+					if (alreadyProcessed)
+					{
+						_logger.LogInformation(
+							"Message {EventId} already processed by consumer {ConsumerName}. Acknowledging without dispatch.",
+							domainEvent.Id, consumerName);
+						await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
+						return;
+					}
+				}
+
 				_logger.LogDebug("Dispatching domain event: {EventType} ({EventId})", domainEventType.Name, domainEvent.Id);
 
 				await dispatcher.DispatchAsync(domainEvent);
+
+				// Record consumption in the inbox after successful dispatch.
+				if (inboxService is not null)
+				{
+					var consumerName = _settings.ClientProvidedName ?? "RabbitMQReceiver";
+					await inboxService.RecordConsumptionAsync(domainEvent.Id, consumerName);
+					await inboxService.SaveChangesAsync();
+				}
 
 				await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
 			}
@@ -188,6 +230,28 @@ public class RabbitMQReceiver(
 	#endregion
 
 	#region Utilities
+	/// <summary>
+	/// Extracts the correlation ID from the incoming message headers.
+	/// Falls back to generating a new correlation ID if none is present.
+	/// </summary>
+	/// <param name="properties">The basic properties of the received message.</param>
+	/// <returns>The extracted or generated correlation identifier.</returns>
+	private static string ExtractCorrelationId(IReadOnlyBasicProperties properties)
+	{
+		if (properties.Headers is not null &&
+			properties.Headers.TryGetValue("CorrelationId", out var raw))
+		{
+			// RabbitMQ stores header values as byte arrays
+			if (raw is byte[] bytes)
+				return Encoding.UTF8.GetString(bytes);
+
+			if (raw is string s)
+				return s;
+		}
+
+		return Guid.NewGuid().ToString();
+	}
+
 	/// <summary>
 	/// Declares the configured queue on the RabbitMQ channel if it does not already exist.
 	/// The queue is created as durable, non-exclusive, and non-auto-delete.

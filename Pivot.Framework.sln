@@ -57,6 +57,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pivot.Framework.Application
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pivot.Framework.Infrastructure.ReadStore.MongoDB", "Src\Infrastructure\Pivot.Framework.Infrastructure.ReadStore.MongoDB\Pivot.Framework.Infrastructure.ReadStore.MongoDB.csproj", "{B6A97DA6-D870-4053-A703-CC240906B2E6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pivot.Framework.Infrastructure.Persistence.PostgreSQL", "Src\Infrastructure\Pivot.Framework.Infrastructure.Persistence.PostgreSQL\Pivot.Framework.Infrastructure.Persistence.PostgreSQL.csproj", "{DE66A993-66A2-4445-A86F-0D891AC019F7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -307,6 +309,18 @@ Global
 		{B6A97DA6-D870-4053-A703-CC240906B2E6}.Release|x64.Build.0 = Release|Any CPU
 		{B6A97DA6-D870-4053-A703-CC240906B2E6}.Release|x86.ActiveCfg = Release|Any CPU
 		{B6A97DA6-D870-4053-A703-CC240906B2E6}.Release|x86.Build.0 = Release|Any CPU
+		{DE66A993-66A2-4445-A86F-0D891AC019F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE66A993-66A2-4445-A86F-0D891AC019F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE66A993-66A2-4445-A86F-0D891AC019F7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DE66A993-66A2-4445-A86F-0D891AC019F7}.Debug|x64.Build.0 = Debug|Any CPU
+		{DE66A993-66A2-4445-A86F-0D891AC019F7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DE66A993-66A2-4445-A86F-0D891AC019F7}.Debug|x86.Build.0 = Debug|Any CPU
+		{DE66A993-66A2-4445-A86F-0D891AC019F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE66A993-66A2-4445-A86F-0D891AC019F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DE66A993-66A2-4445-A86F-0D891AC019F7}.Release|x64.ActiveCfg = Release|Any CPU
+		{DE66A993-66A2-4445-A86F-0D891AC019F7}.Release|x64.Build.0 = Release|Any CPU
+		{DE66A993-66A2-4445-A86F-0D891AC019F7}.Release|x86.ActiveCfg = Release|Any CPU
+		{DE66A993-66A2-4445-A86F-0D891AC019F7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -337,6 +351,7 @@ Global
 		{9468FE8C-E1AD-424E-BDDB-C4CF9E8B9253} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{24EBCB8E-C70E-410F-A60B-1F967920D46B} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{B6A97DA6-D870-4053-A703-CC240906B2E6} = {5C522C01-4562-46F5-AE0B-C0931006F43A}
+		{DE66A993-66A2-4445-A86F-0D891AC019F7} = {5C522C01-4562-46F5-AE0B-C0931006F43A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7A9A2658-78B1-48DA-B95E-13688F049AB4}

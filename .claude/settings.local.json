@@ -23,7 +23,19 @@
       "Bash(grep -v \"\\\\.g\\\\.cs$\")",
       "Bash(grep -v \"\\\\.Designer\\\\.cs$\")",
       "Bash(grep -v \"AssemblyInfo\\\\.cs$\")",
-      "Bash(grep -v \"AssemblyAttributes\\\\.cs$\")"
+      "Bash(grep -v \"AssemblyAttributes\\\\.cs$\")",
+      "Bash(find 'C:\\\\FAVV\\\\Source Code\\\\Pivot.Framework' -type f -name *OutboxMessageConfiguration* -o -name *OutboxConfiguration*)",
+      "Bash(find '/c/FAVV/Source Code' -name *TestDbContext* -o -name *test*context* -type f)",
+      "Bash(find '/c/FAVV/Source Code' -path *Tests* -name *Context*.cs -type f)",
+      "Bash(find '/c/FAVV/Source Code' -path *Containers.API.Tests* -type d)",
+      "Bash(find '/c/FAVV/Source Code/Pivot.Framework/Tests' -name *.cs -type f)",
+      "Bash(dotnet list:*)",
+      "Bash(dotnet tool:*)",
+      "Bash(powershell -Command \":*)",
+      "Bash(python3:*)",
+      "Bash(dotnet package:*)",
+      "Bash(sed -n '480,607p' /c/Users/gihann/Desktop/Personal/MDM/enterprise_mdm_architecture_spec_v6.html)",
+      "Read(//tmp/**)"
     ]
   }
 }

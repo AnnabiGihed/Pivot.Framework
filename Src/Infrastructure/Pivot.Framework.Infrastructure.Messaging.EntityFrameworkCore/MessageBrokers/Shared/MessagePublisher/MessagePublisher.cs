@@ -3,6 +3,7 @@ using RabbitMQ.Client;
 using Microsoft.Extensions.Options;
 using Pivot.Framework.Domain.Shared;
 using System.Collections.Concurrent;
+using Pivot.Framework.Application.Abstractions.Correlation;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.Models;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.RabbitMQ.Models;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessagePublisher;
@@ -71,13 +72,18 @@ public class RabbitMQPublisher(
 					var compressedMessage = _compressor.Compress(Encoding.UTF8.GetBytes(message?.Payload ?? string.Empty));
 					var encryptedMessage = _encryptor.Encrypt(compressedMessage);
 
+					// Propagate the correlation ID from the outbox message if available,
+					// otherwise use the ambient CorrelationContext, falling back to a new GUID.
+					var correlationId = message.CorrelationId
+						?? CorrelationContext.EnsureCorrelationId();
+
 					var properties = new BasicProperties
 					{
 						ContentType = "application/octet-stream",
 						DeliveryMode = DeliveryModes.Persistent,
 						Headers = new Dictionary<string, object?>
 						{
-							{ "CorrelationId", Guid.NewGuid().ToString() },
+							{ "CorrelationId", correlationId },
 							{ "Timestamp", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }
 						},
 						Type = message.EventType // Set the fully qualified type name

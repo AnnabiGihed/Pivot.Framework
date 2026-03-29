@@ -20,6 +20,15 @@ public abstract class LightweightAggregateRoot<TId> : Entity<TId>, IAggregateRoo
 	private readonly List<IDomainEvent> _domainEvents = new();
 	#endregion
 
+	#region Versioning
+	/// <summary>
+	/// Gets the current version of the aggregate.
+	/// Incremented each time a domain event is raised, providing optimistic concurrency
+	/// and enabling event ordering within an aggregate's event stream.
+	/// </summary>
+	public int Version { get; protected set; }
+	#endregion
+
 	#region Constructors
 	/// <summary>
 	/// Initialises a new <see cref="LightweightAggregateRoot{TId}"/> with the specified identity.
@@ -63,6 +72,7 @@ public abstract class LightweightAggregateRoot<TId> : Entity<TId>, IAggregateRoo
 	protected void RaiseDomainEvent(IDomainEvent domainEvent)
 	{
 		ArgumentNullException.ThrowIfNull(domainEvent);
+		Version++;
 		_domainEvents.Add(domainEvent);
 	}
 	#endregion

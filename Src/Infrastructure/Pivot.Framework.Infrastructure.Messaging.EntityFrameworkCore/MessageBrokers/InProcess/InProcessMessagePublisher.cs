@@ -3,7 +3,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Pivot.Framework.Domain.Shared;
 using Pivot.Framework.Domain.Primitives;
+using Pivot.Framework.Application.Abstractions.Correlation;
 using Pivot.Framework.Application.Abstractions.Messaging.Events;
+using Pivot.Framework.Infrastructure.Abstraction.Inbox;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.Models;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessagePublisher;
 
@@ -24,6 +26,13 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBr
 ///              The outbox guarantees at-least-once delivery even without a broker:
 ///              if the app crashes between <c>SaveChanges</c> and dispatch, the unprocessed
 ///              outbox message will be retried on next startup.
+///
+///              Implements the inbox pattern for consumer-side idempotency when
+///              <see cref="IInboxService"/> is registered: checks for prior processing
+///              before dispatching and records consumption after successful dispatch.
+///
+///              Restores the <see cref="CorrelationContext"/> from the outbox message
+///              so that downstream handlers inherit the original correlation ID.
 ///
 ///              Uses <see cref="TypeNameHandling.None"/> for safe deserialization
 ///              (prevents remote code execution via malicious <c>$type</c> payloads).
@@ -104,14 +113,43 @@ public class InProcessMessagePublisher : IMessagePublisher
 					$"Deserialized object is not an IDomainEvent: {message.EventType}"));
 			}
 
+			// ── Restore correlation context from the outbox message ─────────
+			// Ensures downstream handlers inherit the original request's correlation ID.
+			if (!string.IsNullOrEmpty(message.CorrelationId))
+				CorrelationContext.CorrelationId = message.CorrelationId;
+
 			using var scope = _serviceProvider.CreateScope();
 			var dispatcher = scope.ServiceProvider.GetRequiredService<IDomainEventDispatcher>();
+
+			// ── Inbox pattern (consumer-side idempotency) ───────────────────
+			var inboxService = scope.ServiceProvider.GetService<IInboxService>();
+			if (inboxService is not null)
+			{
+				const string consumerName = "InProcessMessagePublisher";
+				var alreadyProcessed = await inboxService.HasBeenProcessedAsync(domainEvent.Id, consumerName);
+
+				if (alreadyProcessed)
+				{
+					_logger.LogInformation(
+						"Message {EventId} already processed by InProcessMessagePublisher. Skipping dispatch.",
+						domainEvent.Id);
+					return Result.Success();
+				}
+			}
 
 			_logger.LogDebug(
 				"In-process dispatching domain event: {EventType} ({EventId})",
 				domainEventType.Name, domainEvent.Id);
 
 			await dispatcher.DispatchAsync(domainEvent);
+
+			// Record consumption in the inbox after successful dispatch.
+			if (inboxService is not null)
+			{
+				const string consumerName = "InProcessMessagePublisher";
+				await inboxService.RecordConsumptionAsync(domainEvent.Id, consumerName);
+				await inboxService.SaveChangesAsync();
+			}
 
 			return Result.Success();
 		}

@@ -13,6 +13,13 @@ public interface IAggregateRoot
 {
 
 	/// <summary>
+	/// Gets the current version of the aggregate.
+	/// Incremented each time a domain event is raised, providing optimistic concurrency
+	/// and enabling event ordering within an aggregate's event stream.
+	/// </summary>
+	int Version { get; }
+
+	/// <summary>
 	/// Clears all stored domain events from this aggregate.
 	/// Called by the infrastructure after events have been successfully persisted to the outbox
 	/// or dispatched to the message broker.

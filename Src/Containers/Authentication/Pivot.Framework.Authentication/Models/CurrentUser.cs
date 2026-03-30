@@ -68,9 +68,9 @@ public sealed class CurrentUser : ICurrentUser
         get
         {
             return User?.Claims
-        .Where(c => c.Type == ClaimTypes.Role)
-        .Select(c => c.Value)
-        .ToList() ?? [];
+				.Where(c => c.Type == ClaimTypes.Role)
+				.Select(c => c.Value)
+				.ToList() ?? [];
         }
     }
 

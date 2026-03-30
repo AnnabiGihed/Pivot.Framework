@@ -25,7 +25,6 @@ namespace Pivot.Framework.Authentication.AspNetCore.Extensions;
 public static class KeycloakAuthenticationExtensions
 {
 	#region Public API — single entry point
-
 	/// <summary>
 	/// Registers Keycloak JWT bearer authentication.
 	/// </summary>
@@ -72,11 +71,9 @@ public static class KeycloakAuthenticationExtensions
 
 		return services;
 	}
-
 	#endregion
 
 	#region Internal Helpers
-
 	/// <summary>
 	/// Core JWT bearer setup. Always called. Not intended for direct use.
 	/// </summary>
@@ -160,6 +157,5 @@ public static class KeycloakAuthenticationExtensions
 
 		return services;
 	}
-
 	#endregion
 }

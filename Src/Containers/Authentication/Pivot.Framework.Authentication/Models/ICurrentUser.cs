@@ -12,9 +12,6 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public interface ICurrentUser
 {
-	/// <summary>Whether the request is authenticated.</summary>
-	bool IsAuthenticated { get; }
-
 	/// <summary>
 	/// Keycloak subject (sub) claim parsed as a <see cref="Guid"/>.
 	/// Keycloak always issues UUIDs for the sub claim, making this a safe parse.
@@ -22,21 +19,23 @@ public interface ICurrentUser
 	/// </summary>
 	Guid? UserId { get; }
 
-	/// <summary>Keycloak preferred_username.</summary>
-	string? Username { get; }
-
 	/// <summary>User's email address.</summary>
 	string? Email { get; }
 
-	/// <summary>Display name (first + last, or preferred_username fallback).</summary>
-	string? DisplayName { get; }
+    /// <summary>Keycloak preferred_username.</summary>
+    string? Username { get; }
 
-	/// <summary>All realm + client roles flattened.</summary>
-	IReadOnlyList<string> Roles { get; }
+    /// <summary>Display name (first + last, or preferred_username fallback).</summary>
+    string? DisplayName { get; }
 
-	/// <summary>Returns true if the user has the given role.</summary>
-	bool IsInRole(string role);
+    /// <summary>Whether the request is authenticated.</summary>
+    bool IsAuthenticated { get; }
 
-	/// <summary>Raw ClaimsPrincipal if you need anything else.</summary>
-	ClaimsPrincipal? Principal { get; }
+    /// <summary>Raw ClaimsPrincipal if you need anything else.</summary>
+    ClaimsPrincipal? Principal { get; }
+    /// <summary>All realm + client roles flattened.</summary>
+    IReadOnlyList<string> Roles { get; }
+
+    /// <summary>Returns true if the user has the given role.</summary>
+    bool IsInRole(string role);
 }

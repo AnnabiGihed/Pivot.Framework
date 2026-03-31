@@ -7,7 +7,7 @@ namespace Pivot.Framework.Domain.Exceptions;
 /// Date        : 01-2026
 /// Purpose     : Domain exception thrown when a value is outside an expected range.
 /// </summary>
-public sealed class OutOfRangeDomainException : DomainException
+public class OutOfRangeDomainException : DomainException
 {
 	#region Constructors
 

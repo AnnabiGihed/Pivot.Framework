@@ -5,7 +5,7 @@ namespace Pivot.Framework.Domain.Exceptions;
 /// Date        : 01-2026
 /// Purpose     : Domain exception thrown when an unexpected/unknown domain error occurs.
 /// </summary>
-public sealed class UnknownDomainException : DomainException
+public class UnknownDomainException : DomainException
 {
 	#region Constructors
 

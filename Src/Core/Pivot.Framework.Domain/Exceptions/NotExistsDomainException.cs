@@ -7,7 +7,7 @@ namespace Pivot.Framework.Domain.Exceptions;
 /// Date        : 01-2026
 /// Purpose     : Domain exception thrown when an expected entity/value does not exist.
 /// </summary>
-public sealed class NotExistsDomainException : DomainException
+public class NotExistsDomainException : DomainException
 {
 	#region Constructors
 

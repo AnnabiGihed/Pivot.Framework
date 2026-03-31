@@ -8,7 +8,7 @@ namespace Pivot.Framework.Domain.Exceptions;
 /// Purpose     : Represents an aggregation of multiple <see cref="DomainException"/> instances.
 ///              Useful when validating multiple parameters and reporting all failures at once.
 /// </summary>
-public sealed class AggregateDomainException : AggregateException
+public class AggregateDomainException : AggregateException
 {
 	#region Constructors
 

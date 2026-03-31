@@ -5,7 +5,7 @@ namespace Pivot.Framework.Domain.Exceptions;
 /// Date        : 01-2026
 /// Purpose     : Domain exception thrown when an entity/value already exists.
 /// </summary>
-public sealed class AlreadyExistsDomainException : DomainException
+public class AlreadyExistsDomainException : DomainException
 {
 	#region Constructors
 

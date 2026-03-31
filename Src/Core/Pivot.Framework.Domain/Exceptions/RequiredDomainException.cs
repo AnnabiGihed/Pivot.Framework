@@ -5,10 +5,9 @@ namespace Pivot.Framework.Domain.Exceptions;
 /// Date        : 01-2026
 /// Purpose     : Domain exception thrown when a required value is missing.
 /// </summary>
-public sealed class RequiredDomainException : DomainException
+public class RequiredDomainException : DomainException
 {
 	#region Constructors
-
 	/// <summary>
 	/// Initializes a new instance of the <see cref="RequiredDomainException"/> class.
 	/// </summary>
@@ -27,6 +26,5 @@ public sealed class RequiredDomainException : DomainException
 		: this(parameterName, Resource.Required)
 	{
 	}
-
 	#endregion
 }

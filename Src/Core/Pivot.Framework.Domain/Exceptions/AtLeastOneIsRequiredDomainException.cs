@@ -5,7 +5,7 @@ namespace Pivot.Framework.Domain.Exceptions;
 /// Date        : 01-2026
 /// Purpose     : Domain exception thrown when at least one value is required but none were provided.
 /// </summary>
-public sealed class AtLeastOneIsRequiredDomainException : DomainException
+public class AtLeastOneIsRequiredDomainException : DomainException
 {
 	#region Constructors
 

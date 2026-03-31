@@ -8,7 +8,7 @@ namespace Pivot.Framework.Domain.Exceptions;
 ///              Intended for validation scenarios where multiple errors must be reported at once.
 /// </summary>
 /// <remarks>This type is not thread-safe. Do not share instances across threads.</remarks>
-public sealed class DomainExceptionScope : IDisposable
+public class DomainExceptionScope : IDisposable
 {
 	#region Fields
 

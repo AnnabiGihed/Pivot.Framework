@@ -15,7 +15,7 @@ namespace Pivot.Framework.Domain.Repositories;
 /// <typeparam name="TEntity">The aggregate root type.</typeparam>
 /// <typeparam name="TId">The strongly-typed identifier type.</typeparam>
 public interface IAsyncCommandRepository<TEntity, TId>
-	where TEntity : AggregateRoot<TId>
+	where TEntity : Entity<TId>, IAggregateRoot
 	where TId : IStronglyTypedId<TId>
 {
 	/// <summary>

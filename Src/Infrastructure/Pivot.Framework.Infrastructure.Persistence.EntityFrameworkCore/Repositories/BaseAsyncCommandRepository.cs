@@ -19,7 +19,7 @@ namespace Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Reposit
 /// <typeparam name="TEntity">The aggregate root type managed by this repository.</typeparam>
 /// <typeparam name="TId">The strongly-typed identifier type of the aggregate root.</typeparam>
 public class BaseAsyncCommandRepository<TEntity, TId> : IAsyncCommandRepository<TEntity, TId>
-	where TEntity : AggregateRoot<TId>
+	where TEntity : Entity<TId>, IAggregateRoot
 	where TId : IStronglyTypedId<TId>
 {
 	#region Fields

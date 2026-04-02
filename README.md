@@ -452,7 +452,7 @@ Pure interface library — no EF Core or Redis dependency. Reference this from y
 |---|---|
 | `IOutboxRepository` | Persist and query `OutboxMessage` records |
 | `IOutboxProcessor` | Process pending outbox messages |
-| `IDomainEventPublisher` | Publish domain events to the message broker |
+| `IDomainEventPublisher` | Persist domain events to the outbox within the current transaction |
 
 ### Outbox drain modes
 
@@ -468,12 +468,16 @@ Configure drain mode when registering the outbox:
 
 ```csharp
 // Inline — simple; adds latency to the HTTP response
-services.AddOutboxDraining<AppDbContext>(OutboxDrainMode.ImmediateAfterRequest);
+services.AddOutboxDraining<AppDbContext>(options =>
+{
+    options.Mode = OutboxDrainMode.ImmediateAfterRequest;
+});
 
 // Background — recommended for production
-services.AddOutboxDraining<AppDbContext>(OutboxDrainMode.BackgroundPolling, options =>
+services.AddOutboxDraining<AppDbContext>(options =>
 {
-    options.PollingIntervalSeconds = 5;
+    options.Mode = OutboxDrainMode.BackgroundPolling;
+    options.PollingInterval = TimeSpan.FromSeconds(5);
 });
 ```
 
@@ -569,10 +573,20 @@ public class CreateOrderCommandHandler(IUnitOfWork<AppDbContext> unitOfWork)
 Register in DI:
 
 ```csharp
-services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(configuration.GetConnectionString("Default")));
+public sealed class AppUnitOfWork
+    : UnitOfWork<AppDbContext>
+{
+    public AppUnitOfWork(
+        AppDbContext dbContext,
+        ICurrentUserProvider currentUserProvider,
+        IDomainEventPublisher<AppDbContext> domainEventPublisher)
+        : base(dbContext, currentUserProvider, domainEventPublisher)
+    {
+    }
+}
 
-services.AddScoped<IUnitOfWork<AppDbContext>, UnitOfWork<AppDbContext>>();
+services.AddPostgreSqlContext<AppDbContext>(configuration.GetConnectionString("Default")!);
+services.AddEfCoreWritePersistence<AppDbContext, AppUnitOfWork>(includeEventStore: true);
 ```
 
 ### Repository
@@ -628,6 +642,39 @@ catch
 
 `TransactionMiddleware<TContext>` (in `Pivot.Framework.Containers.API`) uses this automatically for all non-GET requests.
 
+### Write-side persistence bundle
+
+For a production-ready EF Core write-side setup, register the transport-agnostic persistence stack first, then choose your transport and outbox drain mode separately:
+
+```csharp
+services.AddPostgreSqlContext<AppDbContext>(configuration.GetConnectionString("Default")!);
+services.AddEfCoreWritePersistence<AppDbContext, AppUnitOfWork>(includeEventStore: true);
+
+// Choose one transport
+services.AddRabbitMQPublisher(configuration);
+// or
+services.AddInProcessMessagePublisher();
+
+// Choose one drain mode
+services.AddOutboxDraining<AppDbContext>(options =>
+{
+    options.Mode = OutboxDrainMode.BackgroundPolling;
+    options.PollingInterval = TimeSpan.FromSeconds(5);
+});
+```
+
+`AddEfCoreWritePersistence<TContext, TUnitOfWork>()` registers:
+
+- `ITransactionManager<TContext>`
+- `IOutboxRepository<TContext>`
+- `IDomainEventPublisher<TContext>`
+- `IDomainEventPublisher` (for backwards compatibility in single-context applications)
+- `ICurrentUserProvider`
+- `IHttpContextAccessor`
+- `IUnitOfWork<TContext>`
+
+When multiple write contexts coexist in the same process, prefer injecting `IDomainEventPublisher<TContext>` directly rather than the non-generic `IDomainEventPublisher`.
+
 ### EF Core model configuration helpers
 
 `DomainPrimitivesModelBuilderExtensions` configures strongly-typed IDs and audit navigation names for EF Core:
@@ -667,12 +714,16 @@ The outbox pattern ensures domain events are reliably published even if the mess
 
 ```csharp
 // Register outbox draining in ImmediateAfterRequest mode (inline, after each HTTP request)
-services.AddOutboxDraining<AppDbContext>(OutboxDrainMode.ImmediateAfterRequest);
+services.AddOutboxDraining<AppDbContext>(options =>
+{
+    options.Mode = OutboxDrainMode.ImmediateAfterRequest;
+});
 
 // Or background polling mode
-services.AddOutboxDraining<AppDbContext>(OutboxDrainMode.BackgroundPolling, opts =>
+services.AddOutboxDraining<AppDbContext>(opts =>
 {
-    opts.PollingIntervalSeconds = 10;
+    opts.Mode = OutboxDrainMode.BackgroundPolling;
+    opts.PollingInterval = TimeSpan.FromSeconds(10);
 });
 
 // Add the middleware if using ImmediateAfterRequest

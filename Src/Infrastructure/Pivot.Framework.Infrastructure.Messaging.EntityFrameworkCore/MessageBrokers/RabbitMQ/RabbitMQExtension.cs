@@ -2,13 +2,11 @@ using Polly;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Pivot.Framework.Infrastructure.Abstraction.Outbox.Repositories;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.RabbitMQ.Models;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessageReceiver;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessagePublisher;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessageEncryptor;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessageCompressor;
-using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Repositories;
 using Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.RabbitMQ.Services;
 using Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.Shared.Resilience;
 using Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.Shared.MessageReceiver;
@@ -25,7 +23,8 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBr
 ///              to support first-class integration events alongside domain events.
 /// Purpose     : DI registration extensions for the RabbitMQ messaging infrastructure.
 ///              Registers the message publisher, receiver, compressor, encryptor, serializer,
-///              resilience policies, outbox repository, and integration event publisher.
+///              and resilience policies. Transport-agnostic outbox persistence is registered
+///              separately via the write-side persistence extensions.
 /// </summary>
 public static class RabbitMQPublisherExtensions
 {
@@ -66,8 +65,6 @@ public static class RabbitMQPublisherExtensions
 		services.AddSingleton<IMessageReceiver, RabbitMQReceiver>();
 		services.AddHostedService<RabbitMQReceiverHostedService>();
 		#endregion
-
-		services.AddScoped(typeof(IOutboxRepository<>), typeof(OutboxRepository<>));
 		return services;
 	}
 }

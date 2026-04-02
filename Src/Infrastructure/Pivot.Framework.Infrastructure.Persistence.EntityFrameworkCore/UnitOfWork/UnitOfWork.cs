@@ -42,7 +42,7 @@ public abstract class UnitOfWork<TContext> : IUnitOfWork<TContext>
 	/// <summary>
 	/// Publisher that serializes domain events into the outbox for reliable delivery.
 	/// </summary>
-	protected readonly IDomainEventPublisher _domainEventPublisher;
+	protected readonly IDomainEventPublisher<TContext> _domainEventPublisher;
 	#endregion
 
 	#region Constructors
@@ -55,7 +55,7 @@ public abstract class UnitOfWork<TContext> : IUnitOfWork<TContext>
 	/// <exception cref="ArgumentNullException">
 	/// Thrown when any of the parameters is null.
 	/// </exception>
-	protected UnitOfWork(TContext dbContext, ICurrentUserProvider currentUserProvider, IDomainEventPublisher domainEventPublisher)
+	protected UnitOfWork(TContext dbContext, ICurrentUserProvider currentUserProvider, IDomainEventPublisher<TContext> domainEventPublisher)
 	{
 		_dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
 		_currentUserProvider = currentUserProvider ?? throw new ArgumentNullException(nameof(currentUserProvider));

@@ -27,7 +27,7 @@ namespace Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Outbox.
 ///              Publishing is handled by the outbox processor after transaction commit.
 /// </summary>
 /// <typeparam name="TContext">EF Core DbContext type that stores the outbox table.</typeparam>
-public sealed class DomainEventPublisher<TContext> : IDomainEventPublisher
+public sealed class DomainEventPublisher<TContext> : IDomainEventPublisher<TContext>
 	where TContext : DbContext, IPersistenceContext
 {
 	#region Fields

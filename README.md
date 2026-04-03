@@ -1439,6 +1439,81 @@ Add `https://your-app/hangfire-callback` to the Keycloak client's **Valid Redire
 
 ---
 
+## Containers - gRPC
+
+**Package:** `Pivot.Framework.Containers.Grpc`
+
+Provides framework-aligned gRPC registration, exception handling, transaction boundaries, and result-to-status translation.
+
+### Registration
+
+```csharp
+builder.Services.AddEfCoreWritePersistence<AppDbContext, AppUnitOfWork>();
+builder.Services.AddPivotGrpc();
+builder.Services.AddPivotGrpcTransactions<AppDbContext>();
+```
+
+Map your service with the framework helper:
+
+```csharp
+app.MapPivotGrpcService<OrdersGrpcService>();
+```
+
+### Exception handling
+
+`AddPivotGrpc()` registers a global interceptor that maps framework exceptions to gRPC status codes:
+
+| Exception type | gRPC status |
+|---|---|
+| `ValidationException` | `InvalidArgument` |
+| `BadRequestException` | `InvalidArgument` |
+| `NotFoundException` | `NotFound` |
+| Any other | `Internal` |
+
+Validation errors are added to response trailers under `validation-errors`.
+
+### Transaction interceptor
+
+`AddPivotGrpcTransactions<TContext>()` adds a transaction interceptor backed by `ITransactionManager<TContext>`.
+
+By default:
+- unary calls are wrapped in a transaction
+- successful `OK` responses commit
+- validation-style `InvalidArgument` failures commit
+- all other failures roll back
+
+Streaming interception is disabled by default so long-lived streams do not hold open database transactions. You can opt in explicitly:
+
+```csharp
+builder.Services.AddPivotGrpcTransactions<AppDbContext>(options =>
+{
+    options.InterceptServerStreamingCalls = true;
+});
+```
+
+### Result helpers
+
+Use the provided mapper and extensions to convert framework `Result` failures into transport-safe `RpcException` instances:
+
+```csharp
+public override async Task<GetOrderReply> Get(GetOrderRequest request, ServerCallContext context)
+{
+    var result = await _sender.Send(new GetOrderQuery(request.Id), context.CancellationToken);
+    return result.GetValueOrThrow(_grpcResultStatusMapper);
+}
+```
+
+### Proto conventions
+
+The package ships build-transitive defaults for protobuf items:
+- `ProtoRoot="Protos"`
+- `GrpcServices="Server"`
+- `Access="Public"`
+
+That keeps generated server stubs aligned across services while still allowing service-level overrides in each `.csproj`.
+
+---
+
 ## Versioning and Publishing
 
 Packages are published automatically to GitHub Packages when a tag matching `v*.*.*` is pushed:

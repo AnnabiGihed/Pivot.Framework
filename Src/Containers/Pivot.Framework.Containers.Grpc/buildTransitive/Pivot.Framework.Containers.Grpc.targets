@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup>
+    <PivotFrameworkGrpcConventionsImported>true</PivotFrameworkGrpcConventionsImported>
+  </PropertyGroup>
+</Project>

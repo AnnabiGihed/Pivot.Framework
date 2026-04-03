@@ -1,0 +1,9 @@
+<Project>
+  <ItemDefinitionGroup>
+    <Protobuf>
+      <Access>Public</Access>
+      <GrpcServices>Server</GrpcServices>
+      <ProtoRoot>Protos</ProtoRoot>
+    </Protobuf>
+  </ItemDefinitionGroup>
+</Project>

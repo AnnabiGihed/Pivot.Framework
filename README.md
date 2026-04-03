@@ -1439,6 +1439,43 @@ Add `https://your-app/hangfire-callback` to the Keycloak client's **Valid Redire
 
 ---
 
+## Authentication - API
+
+**Package:** `Pivot.Framework.Authentication.API`
+
+Backend auth endpoint helpers for provider-neutral login, callback, refresh, logout, profile, and token introspection flows.
+
+### Registration
+
+```csharp
+builder.Services.AddAuthenticationApi();
+builder.Services.AddKeycloakIdentityProviderServices(builder.Configuration);
+builder.Services.AddInMemoryAuthSessions(); // optional
+```
+
+### Endpoint mapping
+
+```csharp
+app.MapAuthenticationApi("/auth");
+```
+
+Mapped endpoints:
+- `POST /auth/login`
+- `POST /auth/callback`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+- `GET /auth/profile`
+- `POST /auth/introspect`
+
+These endpoints are backed by:
+- `IIdentityProviderAuthService`
+- `IIdentityProviderAdminService`
+- `ITokenIntrospectionService`
+- `ITokenRevocationService`
+- `IAuthSessionStore`
+
+---
+
 ## Containers - gRPC
 
 **Package:** `Pivot.Framework.Containers.Grpc`

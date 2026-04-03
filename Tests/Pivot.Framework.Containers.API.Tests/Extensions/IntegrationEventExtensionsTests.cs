@@ -46,6 +46,23 @@ public class IntegrationEventExtensionsTests
 	}
 
 	/// <summary>
+	/// Verifies that AddIntegrationEventPublisher registers the context-specific publisher.
+	/// </summary>
+	[Fact]
+	public void AddIntegrationEventPublisher_ShouldRegisterContextSpecificPublisher()
+	{
+		var services = new ServiceCollection();
+
+		services.AddIntegrationEventPublisher<TestDbContext>();
+
+		var descriptor = services.SingleOrDefault(x =>
+			x.ServiceType == typeof(IIntegrationEventPublisher<TestDbContext>));
+
+		descriptor.Should().NotBeNull();
+		descriptor!.Lifetime.Should().Be(ServiceLifetime.Scoped);
+	}
+
+	/// <summary>
 	/// Verifies that calling AddIntegrationEventPublisher twice does not duplicate registrations.
 	/// </summary>
 	[Fact]
@@ -57,6 +74,7 @@ public class IntegrationEventExtensionsTests
 		services.AddIntegrationEventPublisher<TestDbContext>();
 
 		services.Count(x => x.ServiceType == typeof(IIntegrationEventPublisher)).Should().Be(1);
+		services.Count(x => x.ServiceType == typeof(IIntegrationEventPublisher<TestDbContext>)).Should().Be(1);
 	}
 
 	#endregion

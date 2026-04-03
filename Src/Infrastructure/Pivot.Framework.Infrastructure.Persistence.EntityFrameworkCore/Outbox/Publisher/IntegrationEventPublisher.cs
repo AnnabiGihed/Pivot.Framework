@@ -27,7 +27,7 @@ namespace Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Outbox.
 ///              for end-to-end distributed tracing.
 /// </summary>
 /// <typeparam name="TContext">EF Core DbContext type that stores the outbox table.</typeparam>
-public sealed class IntegrationEventPublisher<TContext> : IIntegrationEventPublisher
+public sealed class IntegrationEventPublisher<TContext> : IIntegrationEventPublisher<TContext>
 	where TContext : DbContext, IPersistenceContext
 {
 	#region Fields

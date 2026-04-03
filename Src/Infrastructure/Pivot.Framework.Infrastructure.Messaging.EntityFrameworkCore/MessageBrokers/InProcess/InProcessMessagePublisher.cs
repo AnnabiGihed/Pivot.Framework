@@ -89,6 +89,16 @@ public class InProcessMessagePublisher : IMessagePublisher
 
 		try
 		{
+			if (message.Kind == MessageKind.IntegrationEvent)
+			{
+				_logger.LogWarning(
+					"In-process transport cannot dispatch integration event message {MessageId} ({EventType}).",
+					message.Id, message.EventType);
+				return Result.Failure(new Error(
+					"InProcessPublisher.IntegrationEventsNotSupported",
+					"In-process transport cannot dispatch integration events. Configure an external broker transport for integration-event delivery."));
+			}
+
 			var domainEventType = Type.GetType(message.EventType!);
 			if (domainEventType is null)
 			{

@@ -5,6 +5,7 @@ using Pivot.Framework.Domain.Shared;
 using System.Collections.Concurrent;
 using Pivot.Framework.Application.Abstractions.Correlation;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.Models;
+using Pivot.Framework.Infrastructure.Abstraction.Outbox.Publishing;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.RabbitMQ.Models;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessagePublisher;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessageEncryptor;
@@ -25,7 +26,8 @@ public class RabbitMQPublisher(
 	IOptions<RabbitMQSettings> options,
 	IMessageCompressor compressor,
 	IMessageEncryptor encryptor,
-	MessagingResiliencePolicies resiliencePolicies) : IMessagePublisher, IAsyncDisposable
+	MessagingResiliencePolicies resiliencePolicies,
+	IOutboxRoutingResolver? routingResolver = null) : IMessagePublisher, IAsyncDisposable
 {
 	#region Fields
 	/// <summary>Cache of declared queues to avoid redundant declarations.</summary>
@@ -40,6 +42,8 @@ public class RabbitMQPublisher(
 	protected readonly IMessageCompressor _compressor = compressor ?? throw new ArgumentNullException(nameof(compressor));
 	/// <summary>Polly retry and circuit breaker policies for resilient publishing.</summary>
 	protected readonly MessagingResiliencePolicies _resiliencePolicies = resiliencePolicies ?? throw new ArgumentNullException(nameof(resiliencePolicies));
+	/// <summary>Optional service-specific resolver for per-message RabbitMQ routing.</summary>
+	protected readonly IOutboxRoutingResolver? _routingResolver = routingResolver;
 
 	private IConnection? _connection;
 	private IChannel? _channel;
@@ -90,12 +94,9 @@ public class RabbitMQPublisher(
 						Type = message.EventType // Set the fully qualified type name
 					};
 
-					await _channel!.BasicPublishAsync(
-						_settings.Exchange,
-						_settings.RoutingKey,
-						mandatory: true,
-						properties,
-						encryptedMessage);
+					var route = ResolveRoute(message);
+
+					await PublishToChannelAsync(route, properties, encryptedMessage);
 
 					return Result.Success();
 				});
@@ -111,9 +112,9 @@ public class RabbitMQPublisher(
 	#region Utilities
 	/// <summary>
 	/// Lazily creates and caches the RabbitMQ connection and channel, and ensures
-	/// the exchange and queue are declared. Thread-safe via SemaphoreSlim.
+	/// the default exchange and queue are declared. Thread-safe via SemaphoreSlim.
 	/// </summary>
-	private async Task EnsureConnectionAsync()
+	protected virtual async Task EnsureConnectionAsync()
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -154,7 +155,7 @@ public class RabbitMQPublisher(
 
 			// Declare exchange and queue under the connection lock
 			// to avoid race conditions on first use
-			await EnsureExchangeAndQueueDeclaredAsync();
+			await EnsureDefaultExchangeAndQueueDeclaredAsync();
 		}
 		finally
 		{
@@ -163,10 +164,42 @@ public class RabbitMQPublisher(
 	}
 
 	/// <summary>
-	/// Declares the exchange and queue if not already declared.
+	/// Resolves the publish route for the specified outbox <paramref name="message"/>.
+	/// Falls back to <see cref="RabbitMQSettings.Exchange"/> and <see cref="RabbitMQSettings.RoutingKey"/>
+	/// when no custom resolver is configured.
+	/// </summary>
+	protected virtual OutboxRoute ResolveRoute(OutboxMessage message)
+	{
+		ArgumentNullException.ThrowIfNull(message);
+
+		return _routingResolver?.Resolve(message)
+			?? new OutboxRoute(_settings.Exchange, _settings.RoutingKey);
+	}
+
+	/// <summary>
+	/// Publishes the encrypted payload to the configured channel using the supplied route.
+	/// Route-specific topology is expected to be declared separately when the route differs
+	/// from the default settings.
+	/// </summary>
+	protected virtual Task PublishToChannelAsync(OutboxRoute route, BasicProperties properties, byte[] encryptedMessage)
+	{
+		ArgumentNullException.ThrowIfNull(route);
+		ArgumentNullException.ThrowIfNull(properties);
+		ArgumentNullException.ThrowIfNull(encryptedMessage);
+
+		return _channel!.BasicPublishAsync(
+			route.Exchange,
+			route.RoutingKey,
+			mandatory: true,
+			properties,
+			encryptedMessage).AsTask();
+	}
+
+	/// <summary>
+	/// Declares the default exchange and queue if not already declared.
 	/// Must be called under <see cref="_connectionLock"/>.
 	/// </summary>
-	private async Task EnsureExchangeAndQueueDeclaredAsync()
+	private async Task EnsureDefaultExchangeAndQueueDeclaredAsync()
 	{
 		if (_channel is null) return;
 

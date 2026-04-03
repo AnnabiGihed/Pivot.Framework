@@ -32,7 +32,8 @@ public static class IntegrationEventExtensions
 	public static IServiceCollection AddIntegrationEventPublisher<TContext>(this IServiceCollection services)
 		where TContext : DbContext, IPersistenceContext
 	{
-		services.TryAddScoped<IIntegrationEventPublisher, IntegrationEventPublisher<TContext>>();
+		services.TryAddScoped<IIntegrationEventPublisher<TContext>, IntegrationEventPublisher<TContext>>();
+		services.TryAddScoped<IIntegrationEventPublisher>(sp => sp.GetRequiredService<IIntegrationEventPublisher<TContext>>());
 		return services;
 	}
 }

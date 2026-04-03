@@ -5,6 +5,7 @@ using Pivot.Framework.Application.Abstractions;
 using Pivot.Framework.Infrastructure.Abstraction.Persistence;
 using Pivot.Framework.Infrastructure.Abstraction.UnitOfWork;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.DomainEventPublisher;
+using Pivot.Framework.Infrastructure.Abstraction.Outbox.IntegrationEventMapping;
 
 namespace Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.UnitOfWork;
 
@@ -43,6 +44,12 @@ public abstract class UnitOfWork<TContext> : IUnitOfWork<TContext>
 	/// Publisher that serializes domain events into the outbox for reliable delivery.
 	/// </summary>
 	protected readonly IDomainEventPublisher<TContext> _domainEventPublisher;
+
+	/// <summary>
+	/// Optional coordinator that maps domain events to integration events and enqueues them
+	/// in the same transaction.
+	/// </summary>
+	protected readonly IIntegrationEventMappingCoordinator<TContext>? _integrationEventMappingCoordinator;
 	#endregion
 
 	#region Constructors
@@ -52,14 +59,23 @@ public abstract class UnitOfWork<TContext> : IUnitOfWork<TContext>
 	/// <param name="dbContext">The EF Core database context. Must not be null.</param>
 	/// <param name="currentUserProvider">The current user provider for audit stamping. Must not be null.</param>
 	/// <param name="domainEventPublisher">The domain event publisher for outbox persistence. Must not be null.</param>
+	/// <param name="integrationEventMappingCoordinator">
+	/// Optional coordinator for mapping domain events to integration events. When null,
+	/// no integration-event mapping is performed.
+	/// </param>
 	/// <exception cref="ArgumentNullException">
 	/// Thrown when any of the parameters is null.
 	/// </exception>
-	protected UnitOfWork(TContext dbContext, ICurrentUserProvider currentUserProvider, IDomainEventPublisher<TContext> domainEventPublisher)
+	protected UnitOfWork(
+		TContext dbContext,
+		ICurrentUserProvider currentUserProvider,
+		IDomainEventPublisher<TContext> domainEventPublisher,
+		IIntegrationEventMappingCoordinator<TContext>? integrationEventMappingCoordinator = null)
 	{
 		_dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
 		_currentUserProvider = currentUserProvider ?? throw new ArgumentNullException(nameof(currentUserProvider));
 		_domainEventPublisher = domainEventPublisher ?? throw new ArgumentNullException(nameof(domainEventPublisher));
+		_integrationEventMappingCoordinator = integrationEventMappingCoordinator;
 	}
 	#endregion
 
@@ -86,6 +102,10 @@ public abstract class UnitOfWork<TContext> : IUnitOfWork<TContext>
 			var persistEventsResult = await PersistDomainEventsToOutboxAsync(aggregatesWithEvents, cancellationToken);
 			if (persistEventsResult.IsFailure)
 				return persistEventsResult;
+
+			var publishMappedIntegrationEventsResult = await PublishMappedIntegrationEventsAsync(aggregatesWithEvents, cancellationToken);
+			if (publishMappedIntegrationEventsResult.IsFailure)
+				return publishMappedIntegrationEventsResult;
 
 			await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -164,6 +184,24 @@ public abstract class UnitOfWork<TContext> : IUnitOfWork<TContext>
 		{
 			return Result.Failure(new Error("DomainEventOutboxError", ex.Message));
 		}
+	}
+
+	/// <summary>
+	/// Maps the domain events raised by the supplied aggregates to integration events and
+	/// enqueues them in the outbox when a mapping coordinator is configured.
+	/// </summary>
+	protected virtual async Task<Result> PublishMappedIntegrationEventsAsync(List<IAggregateRoot> aggregates, CancellationToken cancellationToken)
+	{
+		ArgumentNullException.ThrowIfNull(aggregates);
+
+		if (_integrationEventMappingCoordinator is null)
+			return Result.Success();
+
+		var domainEvents = aggregates
+			.SelectMany(aggregate => aggregate.GetDomainEvents())
+			.ToList();
+
+		return await _integrationEventMappingCoordinator.PublishMappedIntegrationEventsAsync(domainEvents, cancellationToken);
 	}
 	#endregion
 }

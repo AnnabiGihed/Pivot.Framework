@@ -508,6 +508,8 @@ IMessageEncryptor   // Optional payload encryption
 }
 ```
 
+`Exchange` and `RoutingKey` act as fallback publish defaults. For service-specific per-message routing, register an `IOutboxRoutingResolver` and declare the matching topology with `AddRabbitMQTopology(...)`.
+
 ### Scheduling interfaces
 
 ```csharp
@@ -655,6 +657,9 @@ services.AddRabbitMQPublisher(configuration);
 // or
 services.AddInProcessMessagePublisher();
 
+// Optional: per-message RabbitMQ routing
+services.AddOutboxRoutingResolver<MyOutboxRoutingResolver>();
+
 // Choose one drain mode
 services.AddOutboxDraining<AppDbContext>(options =>
 {
@@ -674,6 +679,14 @@ services.AddOutboxDraining<AppDbContext>(options =>
 - `IUnitOfWork<TContext>`
 
 When multiple write contexts coexist in the same process, prefer injecting `IDomainEventPublisher<TContext>` directly rather than the non-generic `IDomainEventPublisher`.
+
+To translate domain events into integration events in the same transaction, opt in separately:
+
+```csharp
+services.AddIntegrationEventMapping<AppDbContext>();
+```
+
+This keeps existing write-side behaviour unchanged unless the service explicitly enables mapping.
 
 ### EF Core model configuration helpers
 
@@ -731,6 +744,26 @@ app.UseImmediateOutboxDraining<AppDbContext>();
 ```
 
 > Calling `AddOutboxDraining` twice with different modes (or calling `UseImmediateOutboxDraining` when background mode is registered) throws `InvalidOperationException` to prevent accidental dual-processing.
+
+### Per-message routing
+
+When a service needs different routes for different outbox messages, implement `IOutboxRoutingResolver` and register it with:
+
+```csharp
+services.AddOutboxRoutingResolver<MyOutboxRoutingResolver>();
+```
+
+The resolver is used only at publish time. When routes differ from the fallback `RabbitMQSettings`, declare the corresponding exchanges, queues, and bindings explicitly with `AddRabbitMQTopology(...)`.
+
+### Domain-to-integration mapping
+
+To enqueue integration events derived from domain events in the same transaction as the aggregate changes, register mappers implementing `IIntegrationEventMapper<TDomainEvent>` and opt in with:
+
+```csharp
+services.AddIntegrationEventMapping<AppDbContext>();
+```
+
+This feature is transport-agnostic at the outbox-write level, but delivery of the resulting integration-event messages requires a transport capable of handling integration events, such as RabbitMQ.
 
 ### Projection dispatcher
 

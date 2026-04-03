@@ -36,12 +36,12 @@ public class RabbitMQSettings
 	public required string Password { get; set; }
 
 	/// <summary>
-	/// The name of the exchange to bind or publish to.
+	/// The default exchange to bind and publish to when no per-message route override is configured.
 	/// </summary>
 	public required string Exchange { get; set; }
 
 	/// <summary>
-	/// The routing key used when publishing messages to the exchange.
+	/// The default routing key used when no per-message route override is configured.
 	/// </summary>
 	public required string RoutingKey { get; set; }
 

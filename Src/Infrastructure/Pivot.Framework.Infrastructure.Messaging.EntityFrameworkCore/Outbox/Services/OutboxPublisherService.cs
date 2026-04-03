@@ -162,7 +162,7 @@ internal sealed class OutboxPublisherService<TContext>(
 			"Outbox message {MessageId} (type: {EventType}) permanently failed after {RetryCount} retries. Last error: {LastError}",
 			message.Id, message.EventType, message.RetryCount, message.LastError);
 
-		if (_retryOptions.EmitFailureEvent)
+		if (_retryOptions.EmitFailureEvent && !IsOutboxFailureEvent(message))
 		{
 			var failureEvent = new OutboxMessageFailedEvent(
 				failedMessageId: message.Id,
@@ -187,6 +187,14 @@ internal sealed class OutboxPublisherService<TContext>(
 				"Emitted OutboxMessageFailedEvent {FailureEventId} for dead-lettered message {OriginalMessageId}.",
 				failureEvent.Id, message.Id);
 		}
+	}
+
+	private static bool IsOutboxFailureEvent(OutboxMessage message)
+	{
+		return string.Equals(
+			message.EventType,
+			typeof(OutboxMessageFailedEvent).AssemblyQualifiedName,
+			StringComparison.Ordinal);
 	}
 
 	#endregion

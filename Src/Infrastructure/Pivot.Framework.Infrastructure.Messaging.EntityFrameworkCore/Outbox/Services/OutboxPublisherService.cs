@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using Pivot.Framework.Domain.IntegrationEvents;
 using Pivot.Framework.Infrastructure.Abstraction.Persistence;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.Models;
@@ -86,6 +87,7 @@ internal sealed class OutboxPublisherService<TContext>(
 				using var scope = _serviceProvider.CreateScope();
 				var outboxRepository = scope.ServiceProvider.GetRequiredService<IOutboxRepository<TContext>>();
 				var messagePublisher = scope.ServiceProvider.GetRequiredService<IMessagePublisher>();
+				var dbContext = scope.ServiceProvider.GetService<TContext>() as DbContext;
 
 				var messages = await outboxRepository.GetUnprocessedMessagesAsync(stoppingToken);
 
@@ -116,8 +118,20 @@ internal sealed class OutboxPublisherService<TContext>(
 					}
 					catch (Exception ex)
 					{
+						message.RetryCount++;
+						message.LastError = ex.Message;
+						if (message.RetryCount >= _retryOptions.MaxRetryCount)
+						{
+							await DeadLetterMessageAsync(message, outboxRepository, stoppingToken);
+						}
+
 						_logger.LogError(ex, "Error publishing message {MessageId}.", message.Id);
 					}
+				}
+
+				if (dbContext is not null && dbContext.ChangeTracker.HasChanges())
+				{
+					await dbContext.SaveChangesAsync(stoppingToken);
 				}
 			}
 			catch (Exception ex) when (ex is not OperationCanceledException)

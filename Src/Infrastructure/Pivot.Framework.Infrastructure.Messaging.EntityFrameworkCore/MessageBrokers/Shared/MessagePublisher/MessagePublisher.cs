@@ -112,7 +112,7 @@ public class RabbitMQPublisher(
 	#region Utilities
 	/// <summary>
 	/// Lazily creates and caches the RabbitMQ connection and channel, and ensures
-	/// the default exchange and queue are declared. Thread-safe via SemaphoreSlim.
+	/// the default exchange is declared. Thread-safe via SemaphoreSlim.
 	/// </summary>
 	protected virtual async Task EnsureConnectionAsync()
 	{
@@ -153,9 +153,9 @@ public class RabbitMQPublisher(
 			_connection = await factory.CreateConnectionAsync();
 			_channel = await _connection.CreateChannelAsync();
 
-			// Declare exchange and queue under the connection lock
-			// to avoid race conditions on first use
-			await EnsureDefaultExchangeAndQueueDeclaredAsync();
+			// Declare the exchange under the connection lock to avoid race conditions on first use.
+			// Queue declarations belong to topology management and may include service-specific arguments.
+			await EnsureDefaultExchangeDeclaredAsync();
 		}
 		finally
 		{
@@ -196,10 +196,10 @@ public class RabbitMQPublisher(
 	}
 
 	/// <summary>
-	/// Declares the default exchange and queue if not already declared.
+	/// Declares the default exchange if not already declared.
 	/// Must be called under <see cref="_connectionLock"/>.
 	/// </summary>
-	private async Task EnsureDefaultExchangeAndQueueDeclaredAsync()
+	private async Task EnsureDefaultExchangeDeclaredAsync()
 	{
 		if (_channel is null) return;
 
@@ -207,13 +207,6 @@ public class RabbitMQPublisher(
 		{
 			await _channel.ExchangeDeclareAsync(_settings.Exchange, ExchangeType.Direct, durable: true);
 			_declaredExchanges.TryAdd(_settings.Exchange, true);
-		}
-
-		if (!_declaredQueues.ContainsKey(_settings.Queue))
-		{
-			await _channel.QueueDeclareAsync(_settings.Queue, durable: true, exclusive: false, autoDelete: false, arguments: null);
-			await _channel.QueueBindAsync(_settings.Queue, _settings.Exchange, _settings.RoutingKey, arguments: null);
-			_declaredQueues.TryAdd(_settings.Queue, true);
 		}
 	}
 	#endregion

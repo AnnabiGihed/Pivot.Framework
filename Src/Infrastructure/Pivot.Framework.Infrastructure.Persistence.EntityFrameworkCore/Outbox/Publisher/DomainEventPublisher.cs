@@ -122,6 +122,8 @@ public sealed class DomainEventPublisher<TContext> : IDomainEventPublisher<TCont
 			var aggregateType = aggregate.GetType().Name;
 			var aggregateId = ExtractAggregateId(aggregate);
 
+			var aggregateVersion = ResolveAggregateVersion(aggregate, domainEvent);
+
 			var envelope = new EventEnvelope
 			{
 				EventId = domainEvent.Id,
@@ -133,7 +135,7 @@ public sealed class DomainEventPublisher<TContext> : IDomainEventPublisher<TCont
 				CausationId = CausationContext.CausationId,
 				AggregateType = aggregateType,
 				AggregateId = aggregateId,
-				AggregateVersion = aggregate.Version,
+				AggregateVersion = aggregateVersion,
 				ReplayFlag = ReplayContext.IsReplaying,
 				Payload = payload
 			};
@@ -207,6 +209,28 @@ public sealed class DomainEventPublisher<TContext> : IDomainEventPublisher<TCont
 
 		var idValue = idProperty.GetValue(aggregate);
 		return idValue?.ToString();
+	}
+
+	private static int ResolveAggregateVersion(IAggregateRoot aggregate, IDomainEvent domainEvent)
+	{
+		var domainEvents = aggregate.GetDomainEvents().ToList();
+		var domainEventIndex = FindDomainEventIndex(domainEvents, domainEvent);
+		if (domainEventIndex < 0)
+			return Math.Max(1, aggregate.Version);
+
+		var initialAggregateVersion = aggregate.Version - domainEvents.Count + 1;
+		return Math.Max(1, initialAggregateVersion + domainEventIndex);
+	}
+
+	private static int FindDomainEventIndex(IReadOnlyList<IDomainEvent> domainEvents, IDomainEvent domainEvent)
+	{
+		for (var index = 0; index < domainEvents.Count; index++)
+		{
+			if (ReferenceEquals(domainEvents[index], domainEvent))
+				return index;
+		}
+
+		return -1;
 	}
 	#endregion
 }

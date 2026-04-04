@@ -32,8 +32,6 @@ public class RabbitMQPublisher(
 	#region Fields
 	/// <summary>Cache of declared queues to avoid redundant declarations.</summary>
 	protected readonly ConcurrentDictionary<string, bool> _declaredQueues = new();
-	/// <summary>Cache of declared exchanges to avoid redundant declarations.</summary>
-	protected readonly ConcurrentDictionary<string, bool> _declaredExchanges = new();
 	/// <summary>RabbitMQ connection and routing settings.</summary>
 	protected readonly RabbitMQSettings _settings = options.Value ?? throw new ArgumentNullException(nameof(options));
 	/// <summary>Encryptor for message payload encryption (AES-256).</summary>
@@ -111,8 +109,10 @@ public class RabbitMQPublisher(
 
 	#region Utilities
 	/// <summary>
-	/// Lazily creates and caches the RabbitMQ connection and channel, and ensures
-	/// the default exchange is declared. Thread-safe via SemaphoreSlim.
+	/// Lazily creates and caches the RabbitMQ connection and channel.
+	/// Exchange and queue topology must be declared separately so publish-time
+	/// behavior cannot drift from the startup-time topology contract.
+	/// Thread-safe via SemaphoreSlim.
 	/// </summary>
 	protected virtual async Task EnsureConnectionAsync()
 	{
@@ -152,10 +152,6 @@ public class RabbitMQPublisher(
 
 			_connection = await factory.CreateConnectionAsync();
 			_channel = await _connection.CreateChannelAsync();
-
-			// Declare the exchange under the connection lock to avoid race conditions on first use.
-			// Queue declarations belong to topology management and may include service-specific arguments.
-			await EnsureDefaultExchangeDeclaredAsync();
 		}
 		finally
 		{
@@ -195,20 +191,6 @@ public class RabbitMQPublisher(
 			encryptedMessage).AsTask();
 	}
 
-	/// <summary>
-	/// Declares the default exchange if not already declared.
-	/// Must be called under <see cref="_connectionLock"/>.
-	/// </summary>
-	private async Task EnsureDefaultExchangeDeclaredAsync()
-	{
-		if (_channel is null) return;
-
-		if (!_declaredExchanges.ContainsKey(_settings.Exchange))
-		{
-			await _channel.ExchangeDeclareAsync(_settings.Exchange, ExchangeType.Direct, durable: true);
-			_declaredExchanges.TryAdd(_settings.Exchange, true);
-		}
-	}
 	#endregion
 
 	#region IAsyncDisposable Implementation

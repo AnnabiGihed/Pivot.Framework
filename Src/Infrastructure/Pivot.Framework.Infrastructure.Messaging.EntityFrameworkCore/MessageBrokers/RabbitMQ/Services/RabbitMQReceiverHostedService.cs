@@ -14,23 +14,28 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBr
 public class RabbitMQReceiverHostedService : BackgroundService
 {
 	#region Fields
-
-	/// <summary>Indicates whether the receiver is currently listening for messages.</summary>
+	/// <summary>
+	/// Indicates whether the receiver is currently listening for messages.
+	/// </summary>
 	protected volatile bool _isListening;
 
-	/// <summary>The message receiver that handles RabbitMQ message consumption.</summary>
+	/// <summary>
+	/// The message receiver that handles RabbitMQ message consumption.
+	/// </summary>
 	protected readonly IMessageReceiver _messageReceiver;
 
-	/// <summary>Provides notifications about application lifetime events.</summary>
+	/// <summary>
+	/// Provides notifications about application lifetime events.
+	/// </summary>
 	protected readonly IHostApplicationLifetime _applicationLifetime;
 
-	/// <summary>Logger for diagnostic tracing of receiver lifecycle events.</summary>
+	/// <summary>
+	/// Logger for diagnostic tracing of receiver lifecycle events.
+	/// </summary>
 	protected readonly ILogger<RabbitMQReceiverHostedService> _logger;
-
 	#endregion
 
 	#region Constructors
-
 	/// <summary>
 	/// Initialises a new <see cref="RabbitMQReceiverHostedService"/> with the provided dependencies.
 	/// </summary>
@@ -38,15 +43,14 @@ public class RabbitMQReceiverHostedService : BackgroundService
 	/// <param name="logger">The logger instance. Must not be null.</param>
 	/// <param name="applicationLifetime">The application lifetime notifier. Must not be null.</param>
 	public RabbitMQReceiverHostedService(IMessageReceiver messageReceiver, ILogger<RabbitMQReceiverHostedService> logger, IHostApplicationLifetime applicationLifetime)
-	{
-		_messageReceiver = messageReceiver;
-		_logger = logger;
+    {
+        _logger = logger;
+        _messageReceiver = messageReceiver;
 		_applicationLifetime = applicationLifetime;
 	}
 	#endregion
 
 	#region BackgroundService Methods
-
 	/// <summary>
 	/// Stops the RabbitMQ receiver and disposes the underlying connection.
 	/// </summary>

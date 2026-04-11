@@ -13,11 +13,6 @@ public sealed class TokenIntrospectionResult
 	public bool IsActive { get; set; }
 
 	/// <summary>
-	/// Token subject identifier.
-	/// </summary>
-	public string? SubjectId { get; set; }
-
-	/// <summary>
 	/// Username when exposed by the provider.
 	/// </summary>
 	public string? Username { get; set; }
@@ -27,10 +22,15 @@ public sealed class TokenIntrospectionResult
 	/// </summary>
 	public string? ClientId { get; set; }
 
-	/// <summary>
-	/// Expiration timestamp when exposed by the provider.
-	/// </summary>
-	public DateTimeOffset? ExpiresAt { get; set; }
+    /// <summary>
+    /// Token subject identifier.
+    /// </summary>
+    public string? SubjectId { get; set; }
+
+    /// <summary>
+    /// Expiration timestamp when exposed by the provider.
+    /// </summary>
+    public DateTimeOffset? ExpiresAt { get; set; }
 
 	/// <summary>
 	/// Granted scopes.

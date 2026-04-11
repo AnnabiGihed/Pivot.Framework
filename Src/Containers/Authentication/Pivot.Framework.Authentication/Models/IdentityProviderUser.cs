@@ -8,11 +8,6 @@ namespace Pivot.Framework.Authentication.Models;
 public sealed class IdentityProviderUser
 {
 	/// <summary>
-	/// Provider-specific user identifier.
-	/// </summary>
-	public string Id { get; set; } = string.Empty;
-
-	/// <summary>
 	/// Username.
 	/// </summary>
 	public string? Username { get; set; }
@@ -42,10 +37,15 @@ public sealed class IdentityProviderUser
 	/// </summary>
 	public bool IsEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Provider-specific user identifier.
+    /// </summary>
+    public string Id { get; set; } = string.Empty;
+    
 	/// <summary>
-	/// Provider roles associated with the user.
-	/// </summary>
-	public IReadOnlyCollection<IdentityProviderRole> Roles { get; set; } = [];
+    /// Provider roles associated with the user.
+    /// </summary>
+    public IReadOnlyCollection<IdentityProviderRole> Roles { get; set; } = [];
 
 	/// <summary>
 	/// Claims associated with the user.

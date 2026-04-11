@@ -1,10 +1,10 @@
+using MediatR;
+using NSubstitute;
 using FluentAssertions;
 using FluentValidation;
 using FluentValidation.Results;
-using MediatR;
-using NSubstitute;
-using Pivot.Framework.Application.Behaviors;
 using Pivot.Framework.Domain.Shared;
+using Pivot.Framework.Application.Behaviors;
 using FvValidationResult = FluentValidation.Results.ValidationResult;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("DynamicProxyGenAssembly2")]
@@ -20,9 +20,18 @@ namespace Pivot.Framework.Application.Tests.Behaviors;
 /// </summary>
 public class ValidationPipelineBehaviorTests
 {
-	#region Test Infrastructure
-	internal record TestCommand(string Name) : IRequest<Result>;
-	internal record TestQueryCommand(int Id) : IRequest<Result<string>>;
+    #region Test Infrastructure
+    /// <summary>
+    /// Simple test command and query types for testing the validation behavior.
+    /// </summary>
+    /// <param name="Name"></param>
+    internal record TestCommand(string Name) : IRequest<Result>;
+
+    /// <summary>
+    /// Simple test query command with generic Result{T} response for testing validation behavior with generic results.
+    /// </summary>
+    /// <param name="Id"></param>
+    internal record TestQueryCommand(int Id) : IRequest<Result<string>>;
 	#endregion
 
 	#region Constructor Tests
@@ -45,23 +54,66 @@ public class ValidationPipelineBehaviorTests
 	[Fact]
 	public async Task Handle_NoValidators_ShouldCallNext()
 	{
-		var behavior = new ValidationPipelineBehavior<TestCommand, Result>(
-			Array.Empty<IValidator<TestCommand>>());
+		var behavior = new ValidationPipelineBehavior<TestCommand, Result>(Array.Empty<IValidator<TestCommand>>());
 
-		var result = await behavior.Handle(
-			new TestCommand("Test"),
-			ct => Task.FromResult(Result.Success()),
-			CancellationToken.None);
+		var result = await behavior.Handle(new TestCommand("Test"), ct => Task.FromResult(Result.Success()), CancellationToken.None);
 
 		result.IsSuccess.Should().BeTrue();
 	}
-	#endregion
+    #endregion
 
-	#region Validation Error Tests
-	/// <summary>
-	/// Verifies that validation errors produce a validation failure result.
-	/// </summary>
-	[Fact]
+    #region Validation Error Tests
+    /// <summary>
+    /// Verifies that when validators pass, next is called.
+    /// </summary>
+    [Fact]
+    public async Task Handle_NoErrors_ShouldCallNext()
+    {
+        var validator = Substitute.For<IValidator<TestCommand>>();
+        validator.ValidateAsync(Arg.Any<ValidationContext<TestCommand>>(), Arg.Any<CancellationToken>())
+            .Returns(new FvValidationResult());
+
+        var behavior = new ValidationPipelineBehavior<TestCommand, Result>(new[] { validator });
+
+        var result = await behavior.Handle(new TestCommand("Valid"), ct => Task.FromResult(Result.Success()), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// Verifies that duplicate errors are deduplicated.
+    /// </summary>
+    [Fact]
+    public async Task Handle_DuplicateErrors_ShouldDeduplicate()
+    {
+        var validator1 = Substitute.For<IValidator<TestCommand>>();
+        validator1.ValidateAsync(Arg.Any<ValidationContext<TestCommand>>(), Arg.Any<CancellationToken>())
+            .Returns(new FvValidationResult(new[]
+            {
+                new ValidationFailure("Name", "Name is required")
+            }));
+
+        var validator2 = Substitute.For<IValidator<TestCommand>>();
+        validator2.ValidateAsync(Arg.Any<ValidationContext<TestCommand>>(), Arg.Any<CancellationToken>())
+            .Returns(new FvValidationResult(new[]
+            {
+                new ValidationFailure("Name", "Name is required")
+            }));
+
+        var behavior = new ValidationPipelineBehavior<TestCommand, Result>(
+            new[] { validator1, validator2 });
+
+        var result = await behavior.Handle(new TestCommand(""), ct => Task.FromResult(Result.Success()), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        var validationResult = result as IValidationResult;
+        validationResult.Should().NotBeNull();
+        validationResult!.Errors.Should().HaveCount(1);
+    }
+    /// <summary>
+    /// Verifies that validation errors produce a validation failure result.
+    /// </summary>
+    [Fact]
 	public async Task Handle_WithErrors_ShouldReturnValidationResult()
 	{
 		var validator = Substitute.For<IValidator<TestCommand>>();
@@ -71,72 +123,13 @@ public class ValidationPipelineBehaviorTests
 				new ValidationFailure("Name", "Name is required")
 			}));
 
-		var behavior = new ValidationPipelineBehavior<TestCommand, Result>(
-			new[] { validator });
+		var behavior = new ValidationPipelineBehavior<TestCommand, Result>(new[] { validator });
 
-		var result = await behavior.Handle(
-			new TestCommand(""),
-			ct => Task.FromResult(Result.Success()),
-			CancellationToken.None);
+		var result = await behavior.Handle(new TestCommand(""), ct => Task.FromResult(Result.Success()), CancellationToken.None);
 
 		result.IsFailure.Should().BeTrue();
 		var validationResult = result.Should().BeAssignableTo<IValidationResult>().Subject;
 		validationResult.Errors.Should().Contain(e => e.Code == "Name");
-	}
-
-	/// <summary>
-	/// Verifies that duplicate errors are deduplicated.
-	/// </summary>
-	[Fact]
-	public async Task Handle_DuplicateErrors_ShouldDeduplicate()
-	{
-		var validator1 = Substitute.For<IValidator<TestCommand>>();
-		validator1.ValidateAsync(Arg.Any<ValidationContext<TestCommand>>(), Arg.Any<CancellationToken>())
-			.Returns(new FvValidationResult(new[]
-			{
-				new ValidationFailure("Name", "Name is required")
-			}));
-
-		var validator2 = Substitute.For<IValidator<TestCommand>>();
-		validator2.ValidateAsync(Arg.Any<ValidationContext<TestCommand>>(), Arg.Any<CancellationToken>())
-			.Returns(new FvValidationResult(new[]
-			{
-				new ValidationFailure("Name", "Name is required")
-			}));
-
-		var behavior = new ValidationPipelineBehavior<TestCommand, Result>(
-			new[] { validator1, validator2 });
-
-		var result = await behavior.Handle(
-			new TestCommand(""),
-			ct => Task.FromResult(Result.Success()),
-			CancellationToken.None);
-
-		result.IsFailure.Should().BeTrue();
-		var validationResult = result as IValidationResult;
-		validationResult.Should().NotBeNull();
-		validationResult!.Errors.Should().HaveCount(1);
-	}
-
-	/// <summary>
-	/// Verifies that when validators pass, next is called.
-	/// </summary>
-	[Fact]
-	public async Task Handle_NoErrors_ShouldCallNext()
-	{
-		var validator = Substitute.For<IValidator<TestCommand>>();
-		validator.ValidateAsync(Arg.Any<ValidationContext<TestCommand>>(), Arg.Any<CancellationToken>())
-			.Returns(new FvValidationResult());
-
-		var behavior = new ValidationPipelineBehavior<TestCommand, Result>(
-			new[] { validator });
-
-		var result = await behavior.Handle(
-			new TestCommand("Valid"),
-			ct => Task.FromResult(Result.Success()),
-			CancellationToken.None);
-
-		result.IsSuccess.Should().BeTrue();
 	}
 	#endregion
 

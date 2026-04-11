@@ -13,9 +13,16 @@ namespace Pivot.Framework.Authentication.Handlers;
 /// </summary>
 public sealed class KeycloakAuthorizationMessageHandler : DelegatingHandler
 {
-	#region Dependencies
-	private readonly IKeycloakAuthService _auth;
-	private readonly ILogger<KeycloakAuthorizationMessageHandler> _logger;
+    #region Dependencies
+    /// <summary>
+    /// The Keycloak authentication service used to retrieve and refresh tokens.
+    /// </summary>
+    private readonly IKeycloakAuthService _auth;
+
+    /// <summary>
+    /// The logger for diagnostic output.
+    /// </summary>
+    private readonly ILogger<KeycloakAuthorizationMessageHandler> _logger;
 	#endregion
 
 	#region Constructor

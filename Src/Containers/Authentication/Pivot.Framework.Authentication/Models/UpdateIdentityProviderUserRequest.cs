@@ -8,27 +8,27 @@ namespace Pivot.Framework.Authentication.Models;
 public sealed class UpdateIdentityProviderUserRequest
 {
 	/// <summary>
-	/// Optional username override.
-	/// </summary>
-	public string? Username { get; set; }
-
-	/// <summary>
 	/// Optional email address.
 	/// </summary>
 	public string? Email { get; set; }
 
-	/// <summary>
-	/// Optional first name.
-	/// </summary>
-	public string? FirstName { get; set; }
+    /// <summary>
+    /// Optional enabled flag.
+    /// </summary>
+    public bool? IsEnabled { get; set; }
 
-	/// <summary>
-	/// Optional last name.
-	/// </summary>
-	public string? LastName { get; set; }
+    /// <summary>
+    /// Optional username override.
+    /// </summary>
+    public string? Username { get; set; }
 
-	/// <summary>
-	/// Optional enabled flag.
-	/// </summary>
-	public bool? IsEnabled { get; set; }
+    /// <summary>
+    /// Optional last name.
+    /// </summary>
+    public string? LastName { get; set; }
+
+    /// <summary>
+    /// Optional first name.
+    /// </summary>
+    public string? FirstName { get; set; }
 }

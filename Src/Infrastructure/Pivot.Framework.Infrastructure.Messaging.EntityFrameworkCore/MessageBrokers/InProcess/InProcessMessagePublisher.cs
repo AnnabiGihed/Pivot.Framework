@@ -1,12 +1,12 @@
 using Newtonsoft.Json;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
 using Pivot.Framework.Domain.Shared;
 using Pivot.Framework.Domain.Primitives;
-using Pivot.Framework.Application.Abstractions.Correlation;
-using Pivot.Framework.Application.Abstractions.Messaging.Events;
+using Microsoft.Extensions.DependencyInjection;
 using Pivot.Framework.Infrastructure.Abstraction.Inbox;
+using Pivot.Framework.Application.Abstractions.Correlation;
 using Pivot.Framework.Infrastructure.Abstraction.Outbox.Models;
+using Pivot.Framework.Application.Abstractions.Messaging.Events;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessagePublisher;
 
 namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.InProcess;
@@ -62,12 +62,10 @@ public class InProcessMessagePublisher : IMessagePublisher
 	/// scoped services (DbContext, handlers) are correctly resolved and disposed.
 	/// </param>
 	/// <param name="logger">The logger instance.</param>
-	public InProcessMessagePublisher(
-		IServiceProvider serviceProvider,
-		ILogger<InProcessMessagePublisher> logger)
+	public InProcessMessagePublisher(IServiceProvider serviceProvider, ILogger<InProcessMessagePublisher> logger)
 	{
-		_serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 	}
 	#endregion
 
@@ -91,23 +89,15 @@ public class InProcessMessagePublisher : IMessagePublisher
 		{
 			if (message.Kind == MessageKind.IntegrationEvent)
 			{
-				_logger.LogWarning(
-					"In-process transport cannot dispatch integration event message {MessageId} ({EventType}).",
-					message.Id, message.EventType);
-				return Result.Failure(new Error(
-					"InProcessPublisher.IntegrationEventsNotSupported",
-					"In-process transport cannot dispatch integration events. Configure an external broker transport for integration-event delivery."));
+				_logger.LogWarning("In-process transport cannot dispatch integration event message {MessageId} ({EventType}).", message.Id, message.EventType);
+				return Result.Failure(new Error("InProcessPublisher.IntegrationEventsNotSupported", "In-process transport cannot dispatch integration events. Configure an external broker transport for integration-event delivery."));
 			}
 
 			var domainEventType = Type.GetType(message.EventType!);
 			if (domainEventType is null)
 			{
-				_logger.LogWarning(
-					"Unknown event type: {EventType}. Message {MessageId} cannot be dispatched in-process.",
-					message.EventType, message.Id);
-				return Result.Failure(new Error(
-					"InProcessPublisher.UnknownEventType",
-					$"Cannot resolve event type: {message.EventType}"));
+				_logger.LogWarning("Unknown event type: {EventType}. Message {MessageId} cannot be dispatched in-process.", message.EventType, message.Id);
+				return Result.Failure(new Error("InProcessPublisher.UnknownEventType", $"Cannot resolve event type: {message.EventType}"));
 			}
 
 			var deserialized = JsonConvert.DeserializeObject(
@@ -115,23 +105,16 @@ public class InProcessMessagePublisher : IMessagePublisher
 
 			if (deserialized is not IDomainEvent domainEvent)
 			{
-				_logger.LogWarning(
-					"Deserialized object is not an IDomainEvent: {EventType}. Message {MessageId}.",
-					message.EventType, message.Id);
-				return Result.Failure(new Error(
-					"InProcessPublisher.InvalidEvent",
-					$"Deserialized object is not an IDomainEvent: {message.EventType}"));
+				_logger.LogWarning("Deserialized object is not an IDomainEvent: {EventType}. Message {MessageId}.", message.EventType, message.Id);
+				return Result.Failure(new Error("InProcessPublisher.InvalidEvent", $"Deserialized object is not an IDomainEvent: {message.EventType}"));
 			}
 
-			// ── Restore correlation context from the outbox message ─────────
-			// Ensures downstream handlers inherit the original request's correlation ID.
 			if (!string.IsNullOrEmpty(message.CorrelationId))
 				CorrelationContext.CorrelationId = message.CorrelationId;
 
 			using var scope = _serviceProvider.CreateScope();
 			var dispatcher = scope.ServiceProvider.GetRequiredService<IDomainEventDispatcher>();
 
-			// ── Inbox pattern (consumer-side idempotency) ───────────────────
 			var inboxService = scope.ServiceProvider.GetService<IInboxService>();
 			if (inboxService is not null)
 			{
@@ -140,20 +123,15 @@ public class InProcessMessagePublisher : IMessagePublisher
 
 				if (alreadyProcessed)
 				{
-					_logger.LogInformation(
-						"Message {EventId} already processed by InProcessMessagePublisher. Skipping dispatch.",
-						domainEvent.Id);
+					_logger.LogInformation("Message {EventId} already processed by InProcessMessagePublisher. Skipping dispatch.", domainEvent.Id);
 					return Result.Success();
 				}
 			}
 
-			_logger.LogDebug(
-				"In-process dispatching domain event: {EventType} ({EventId})",
-				domainEventType.Name, domainEvent.Id);
+			_logger.LogDebug("In-process dispatching domain event: {EventType} ({EventId})", domainEventType.Name, domainEvent.Id);
 
 			await dispatcher.DispatchAsync(domainEvent);
 
-			// Record consumption in the inbox after successful dispatch.
 			if (inboxService is not null)
 			{
 				const string consumerName = "InProcessMessagePublisher";
@@ -165,13 +143,9 @@ public class InProcessMessagePublisher : IMessagePublisher
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex,
-				"Error dispatching message {MessageId} (type: {EventType}) in-process.",
-				message.Id, message.EventType);
+			_logger.LogError(ex, "Error dispatching message {MessageId} (type: {EventType}) in-process.", message.Id, message.EventType);
 
-			return Result.Failure(new Error(
-				"InProcessPublisher.DispatchFailed",
-				ex.Message));
+			return Result.Failure(new Error("InProcessPublisher.DispatchFailed", ex.Message));
 		}
 	}
 	#endregion

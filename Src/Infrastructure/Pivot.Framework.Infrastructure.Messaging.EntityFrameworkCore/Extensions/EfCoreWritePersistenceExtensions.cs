@@ -1,17 +1,16 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Pivot.Framework.Application.Abstractions;
-using Pivot.Framework.Infrastructure.Abstraction.Outbox.DomainEventPublisher;
-using Pivot.Framework.Infrastructure.Abstraction.Outbox.Repositories;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Pivot.Framework.Infrastructure.Abstraction.UnitOfWork;
 using Pivot.Framework.Infrastructure.Abstraction.Persistence;
 using Pivot.Framework.Infrastructure.Abstraction.Transaction;
-using Pivot.Framework.Infrastructure.Abstraction.UnitOfWork;
-using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Publisher;
-using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Repositories;
+using Pivot.Framework.Infrastructure.Abstraction.Outbox.Repositories;
+using Pivot.Framework.Infrastructure.Abstraction.Outbox.DomainEventPublisher;
 using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Services;
 using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Transaction;
+using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Publisher;
+using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Repositories;
 
 namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.Extensions;
 
@@ -40,9 +39,7 @@ public static class EfCoreWritePersistenceExtensions
 	/// <see cref="EventStoreExtensions.AddEventStore{TContext}(IServiceCollection)"/>.
 	/// </param>
 	/// <returns>The same <paramref name="services"/> instance for chaining.</returns>
-	public static IServiceCollection AddEfCoreWritePersistence<TContext, TUnitOfWork>(
-		this IServiceCollection services,
-		bool includeEventStore = false)
+	public static IServiceCollection AddEfCoreWritePersistence<TContext, TUnitOfWork>(this IServiceCollection services, bool includeEventStore = false)
 		where TContext : DbContext, IPersistenceContext
 		where TUnitOfWork : class, IUnitOfWork<TContext>
 	{

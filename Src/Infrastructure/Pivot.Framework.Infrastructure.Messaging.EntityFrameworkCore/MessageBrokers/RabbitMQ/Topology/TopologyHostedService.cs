@@ -13,12 +13,12 @@ namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBr
 /// </summary>
 public sealed class TopologyHostedService : IHostedService
 {
-	private readonly IRabbitMQTopologyManager _topologyManager;
-	private readonly ILogger<TopologyHostedService> _logger;
+    #region Fields
+    private readonly ILogger<TopologyHostedService> _logger;
+    private readonly IRabbitMQTopologyManager _topologyManager;
+    #endregion
 
-	public TopologyHostedService(
-		IRabbitMQTopologyManager topologyManager,
-		ILogger<TopologyHostedService> logger)
+    public TopologyHostedService(IRabbitMQTopologyManager topologyManager, ILogger<TopologyHostedService> logger)
 	{
 		_topologyManager = topologyManager ?? throw new ArgumentNullException(nameof(topologyManager));
 		_logger = logger ?? throw new ArgumentNullException(nameof(logger));

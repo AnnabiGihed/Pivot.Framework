@@ -11,56 +11,44 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public sealed class CurrentUser : ICurrentUser
 {
-	#region Dependencies
-	private readonly IHttpContextAccessor _accessor;
-	#endregion
+    #region Dependencies
+    /// <summary>
+    /// The HTTP context accessor used to resolve the current request's user principal.
+    /// </summary>
+    private readonly IHttpContextAccessor _accessor;
+    #endregion
 
-	#region Constructor
-	/// <summary>
-	/// Initialises a new instance of <see cref="CurrentUser"/> with the provided HTTP context accessor.
-	/// </summary>
-	/// <param name="accessor">The HTTP context accessor used to resolve the current request's user principal.</param>
-	public CurrentUser(IHttpContextAccessor accessor) => _accessor = accessor;
-	#endregion
+    #region ICurrentUser
+    /// <inheritdoc />
+    public Guid? UserId
+    {
+        get
+        {
+            var raw = User?.FindFirstValue(ClaimTypes.NameIdentifier)
+                      ?? User?.FindFirstValue("sub");
 
-	#region Private helpers
-	/// <summary>
-	/// The claims principal of the current HTTP request user, or <c>null</c> if no HTTP context is available.
-	/// </summary>
-	private ClaimsPrincipal? User => _accessor.HttpContext?.User;
-	#endregion
+            return Guid.TryParse(raw, out var guid) ? guid : null;
+        }
+    }
 
-	#region ICurrentUser
-	/// <inheritdoc />
-	public Guid? UserId
-	{
-		get
-		{
-			var raw = User?.FindFirstValue(ClaimTypes.NameIdentifier)
-					  ?? User?.FindFirstValue("sub");
+    /// <inheritdoc />
+    public string? DisplayName
+    {
+        get
+        {
+            var name = User?.FindFirstValue("name");
+            if (name is not null)
+                return name;
 
-			return Guid.TryParse(raw, out var guid) ? guid : null;
-		}
-	}
+            var given = User?.FindFirstValue("given_name");
+            var family = User?.FindFirstValue("family_name");
 
-	/// <inheritdoc />
-	public string? DisplayName
-	{
-		get
-		{
-			var name = User?.FindFirstValue("name");
-			if (name is not null)
-				return name;
+            if (given is not null)
+                return string.IsNullOrWhiteSpace(family) ? given : $"{given} {family}".Trim();
 
-			var given = User?.FindFirstValue("given_name");
-			var family = User?.FindFirstValue("family_name");
-
-			if (given is not null)
-				return string.IsNullOrWhiteSpace(family) ? given : $"{given} {family}".Trim();
-
-			return Username;
-		}
-	}
+            return Username;
+        }
+    }
 
     /// <inheritdoc />
     public IReadOnlyList<string> Roles
@@ -68,25 +56,49 @@ public sealed class CurrentUser : ICurrentUser
         get
         {
             return User?.Claims
-				.Where(c => c.Type == ClaimTypes.Role)
-				.Select(c => c.Value)
-				.ToList() ?? [];
+                .Where(c => c.Type == ClaimTypes.Role)
+                .Select(c => c.Value)
+                .ToList() ?? [];
         }
     }
 
     /// <inheritdoc />
     public ClaimsPrincipal? Principal => User;
 
-	/// <inheritdoc />
-	public bool IsInRole(string role) => User?.IsInRole(role) == true;
+    /// <inheritdoc />
+    public bool IsInRole(string role) => User?.IsInRole(role) == true;
 
-	/// <inheritdoc />
-	public bool IsAuthenticated => User?.Identity?.IsAuthenticated == true;
+    /// <inheritdoc />
+    public bool IsAuthenticated => User?.Identity?.IsAuthenticated == true;
 
-	/// <inheritdoc />
-	public string? Email => User?.FindFirstValue(ClaimTypes.Email) ?? User?.FindFirstValue("email");
+    /// <inheritdoc />
+    public string? Email => User?.FindFirstValue(ClaimTypes.Email) ?? User?.FindFirstValue("email");
 
-	/// <inheritdoc />
-	public string? Username => User?.FindFirstValue("preferred_username") ?? User?.FindFirstValue(ClaimTypes.Name);
-	#endregion
+    /// <inheritdoc />
+    public string? Username => User?.FindFirstValue("preferred_username") ?? User?.FindFirstValue(ClaimTypes.Name);
+    #endregion
+
+    #region Private helpers
+    /// <summary>
+    /// The claims principal of the current HTTP request user, or <c>null</c> if no HTTP context is available.
+    /// </summary>
+    private ClaimsPrincipal? User
+    {
+        get
+        {
+            return _accessor.HttpContext?.User;
+        }
+    }
+    #endregion
+
+    #region Constructor
+    /// <summary>
+    /// Initialises a new instance of <see cref="CurrentUser"/> with the provided HTTP context accessor.
+    /// </summary>
+    /// <param name="accessor">The HTTP context accessor used to resolve the current request's user principal.</param>
+    public CurrentUser(IHttpContextAccessor accessor)
+    {
+        _accessor = accessor;
+    }
+    #endregion
 }

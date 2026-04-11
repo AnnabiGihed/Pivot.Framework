@@ -1,10 +1,10 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Pivot.Framework.Infrastructure.Abstraction.Inbox;
-using Pivot.Framework.Infrastructure.Abstraction.Inbox.Repositories;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Pivot.Framework.Infrastructure.Abstraction.Persistence;
+using Pivot.Framework.Infrastructure.Abstraction.Inbox.Repositories;
 using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Inbox;
 using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Inbox.Behaviors;
 using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Inbox.Repositories;

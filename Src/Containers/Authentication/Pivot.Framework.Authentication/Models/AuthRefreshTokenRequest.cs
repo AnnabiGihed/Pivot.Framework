@@ -7,13 +7,13 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public sealed class AuthRefreshTokenRequest
 {
-	/// <summary>
-	/// Refresh token used to obtain a new access token.
-	/// </summary>
-	public string RefreshToken { get; set; } = string.Empty;
-
-	/// <summary>
-	/// Optional session identifier used when persisting auth sessions.
-	/// </summary>
-	public string? SessionId { get; set; }
+    /// <summary>
+    /// Optional session identifier used when persisting auth sessions.
+    /// </summary>
+    public string? SessionId { get; set; }
+    
+    /// <summary>
+    /// Refresh token used to obtain a new access token.
+    /// </summary>
+    public string RefreshToken { get; set; } = string.Empty;
 }

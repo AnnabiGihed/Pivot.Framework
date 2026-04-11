@@ -30,8 +30,8 @@ public sealed class AuthStateChangedEventArgs : EventArgs
 	/// <param name="user">The claims principal, or <c>null</c> if unauthenticated.</param>
 	public AuthStateChangedEventArgs(bool isAuthenticated, ClaimsPrincipal? user)
 	{
-		IsAuthenticated = isAuthenticated;
-		User = user;
+        User = user;
+        IsAuthenticated = isAuthenticated;
 	}
 	#endregion
 }

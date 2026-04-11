@@ -25,6 +25,9 @@ public interface ICurrentUser
     /// <summary>Keycloak preferred_username.</summary>
     string? Username { get; }
 
+    /// <summary>Returns true if the user has the given role.</summary>
+    bool IsInRole(string role);
+
     /// <summary>Display name (first + last, or preferred_username fallback).</summary>
     string? DisplayName { get; }
 
@@ -35,7 +38,4 @@ public interface ICurrentUser
     ClaimsPrincipal? Principal { get; }
     /// <summary>All realm + client roles flattened.</summary>
     IReadOnlyList<string> Roles { get; }
-
-    /// <summary>Returns true if the user has the given role.</summary>
-    bool IsInRole(string role);
 }

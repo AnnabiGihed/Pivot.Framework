@@ -19,9 +19,7 @@ public static class TopologyExtensions
 	/// <param name="services">The service collection.</param>
 	/// <param name="configure">A delegate to configure the topology bindings.</param>
 	/// <returns>The service collection for chaining.</returns>
-	public static IServiceCollection AddRabbitMQTopology(
-		this IServiceCollection services,
-		Action<TopologyOptions> configure)
+	public static IServiceCollection AddRabbitMQTopology(this IServiceCollection services, Action<TopologyOptions> configure)
 	{
 		ArgumentNullException.ThrowIfNull(services);
 		ArgumentNullException.ThrowIfNull(configure);

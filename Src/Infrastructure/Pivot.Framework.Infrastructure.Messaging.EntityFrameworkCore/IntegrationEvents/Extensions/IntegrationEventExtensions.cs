@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Pivot.Framework.Infrastructure.Abstraction.Outbox.IntegrationEventPublisher;
 using Pivot.Framework.Infrastructure.Abstraction.Persistence;
+using Pivot.Framework.Infrastructure.Abstraction.Outbox.IntegrationEventPublisher;
 using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.Outbox.Publisher;
 
 namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.IntegrationEvents.Extensions;

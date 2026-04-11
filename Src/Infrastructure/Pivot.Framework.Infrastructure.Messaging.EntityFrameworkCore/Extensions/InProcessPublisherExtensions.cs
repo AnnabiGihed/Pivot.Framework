@@ -1,8 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Pivot.Framework.Application.Abstractions.ReadModels;
+using Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.Projections;
 using Pivot.Framework.Infrastructure.Abstraction.MessageBrokers.Shared.MessagePublisher;
 using Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.MessageBrokers.InProcess;
-using Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.Projections;
 
 namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.Extensions;
 
@@ -46,8 +46,7 @@ public static class InProcessPublisherExtensions
 	/// </summary>
 	/// <param name="services">The service collection to register into.</param>
 	/// <returns>The same <paramref name="services"/> instance for chaining.</returns>
-	public static IServiceCollection AddProjectionSupport(
-		this IServiceCollection services)
+	public static IServiceCollection AddProjectionSupport(this IServiceCollection services)
 	{
 		services.AddScoped<IProjectionDispatcher, ProjectionDispatcher>();
 		return services;

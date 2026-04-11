@@ -136,7 +136,6 @@ public class RabbitMQReceiver(
 			try
 			{
 				using var scope = _serviceProvider.CreateScope();
-				var dispatcher = scope.ServiceProvider.GetRequiredService<IDomainEventDispatcher>();
 
 				// ── Correlation ID propagation ──────────────────────────────────
 				// Extract the correlation ID from the incoming message headers and set it
@@ -157,17 +156,23 @@ public class RabbitMQReceiver(
 				var messageBytes = _messageCompressor.Decompress(compressedMessage);
 
 				var messagePayload = Encoding.UTF8.GetString(messageBytes);
+				if (string.IsNullOrWhiteSpace(messagePayload))
+				{
+					_logger.LogWarning("Empty message payload for event type: {EventType}. Rejecting to DLQ.", ea.BasicProperties.Type);
+					await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
+					return;
+				}
 
 				var eventType = ea.BasicProperties.Type;
 				_logger.LogDebug("Message received. Type: {EventType}, Size: {Size} bytes, CorrelationId: {CorrelationId}",
 					eventType, messagePayload?.Length ?? 0, correlationId);
 
-				var domainEventType = ea.BasicProperties.Type is not null
+				var messageEventType = ea.BasicProperties.Type is not null
 					? Type.GetType(ea.BasicProperties.Type)
 					: null;
-				_logger.LogDebug("Retrieved Domain Event Type: {EventType}", ea.BasicProperties.Type);
+				_logger.LogDebug("Retrieved message event type: {EventType}", ea.BasicProperties.Type);
 
-				if (domainEventType == null)
+				if (messageEventType == null)
 				{
 					// Reject without requeue — the message will be routed to the dead-letter queue
 					// (if one is configured) or discarded. Requeuing would cause an infinite loop
@@ -177,14 +182,14 @@ public class RabbitMQReceiver(
 					return;
 				}
 
-				var deserialized = JsonConvert.DeserializeObject(messagePayload, domainEventType, DeserializerSettings);
+				var deserialized = JsonConvert.DeserializeObject(messagePayload!, messageEventType, DeserializerSettings);
 
-				if (deserialized is not IDomainEvent domainEvent)
+				if (deserialized is not IDomainEvent and not IIntegrationEvent)
 				{
 					// Reject without requeue — deserialization failures are deterministic and
 					// retrying the same payload will always produce the same result.
 					// The message will be routed to the DLQ if one is configured.
-					_logger.LogWarning("Deserialized object is not an IDomainEvent: {EventType}. Rejecting to DLQ.", ea.BasicProperties.Type);
+					_logger.LogWarning("Deserialized object is neither an IDomainEvent nor an IIntegrationEvent: {EventType}. Rejecting to DLQ.", ea.BasicProperties.Type);
 					await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
 					return;
 				}
@@ -198,10 +203,11 @@ public class RabbitMQReceiver(
 				// - During live processing: key = "EventId:ConsumerName"
 				// This ensures replay-era keys don't collide with live keys (MDM spec invariant #29).
 				var inboxService = scope.ServiceProvider.GetService<IInboxService>();
+				var eventId = ResolveEventId(deserialized);
 				if (inboxService is not null)
 				{
 					var consumerName = _settings.ClientProvidedName ?? "RabbitMQReceiver";
-					var deduplicationId = BuildDeduplicationId(domainEvent.Id, ea.BasicProperties);
+					var deduplicationId = BuildDeduplicationId(eventId, ea.BasicProperties);
 
 					var alreadyProcessed = await inboxService.HasBeenProcessedAsync(deduplicationId, consumerName);
 
@@ -209,7 +215,7 @@ public class RabbitMQReceiver(
 					{
 						_logger.LogInformation(
 							"Message {EventId} already processed by consumer {ConsumerName}. Acknowledging without dispatch.",
-							domainEvent.Id, consumerName);
+							eventId, consumerName);
 						await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
 						return;
 					}
@@ -218,17 +224,15 @@ public class RabbitMQReceiver(
 				// ── Set CausationId to the incoming event's Id ──────────────────
 				// This ensures any events raised by handlers of this event carry
 				// the correct CausationId for causal chain reconstruction.
-				CausationContext.CausationId = domainEvent.Id.ToString();
+				CausationContext.CausationId = eventId.ToString();
 
-				_logger.LogDebug("Dispatching domain event: {EventType} ({EventId})", domainEventType.Name, domainEvent.Id);
-
-				await dispatcher.DispatchAsync(domainEvent);
+				await DispatchReceivedEventAsync(scope.ServiceProvider, deserialized, messageEventType, eventId);
 
 				// Record consumption in the inbox after successful dispatch.
 				if (inboxService is not null)
 				{
 					var consumerName = _settings.ClientProvidedName ?? "RabbitMQReceiver";
-					var deduplicationId = BuildDeduplicationId(domainEvent.Id, ea.BasicProperties);
+					var deduplicationId = BuildDeduplicationId(eventId, ea.BasicProperties);
 					await inboxService.RecordConsumptionAsync(deduplicationId, consumerName);
 					await inboxService.SaveChangesAsync();
 				}
@@ -272,6 +276,52 @@ public class RabbitMQReceiver(
 		}
 
 		return Guid.NewGuid().ToString();
+	}
+
+	/// <summary>
+	/// Resolves the identifier of a received domain or integration event.
+	/// </summary>
+	/// <param name="eventObject">The deserialized event object.</param>
+	/// <returns>The event identifier.</returns>
+	/// <exception cref="InvalidOperationException">Thrown when the event object is not a supported event type.</exception>
+	private static Guid ResolveEventId(object eventObject)
+	{
+		return eventObject switch
+		{
+			IDomainEvent domainEvent => domainEvent.Id,
+			IIntegrationEvent integrationEvent => integrationEvent.Id,
+			_ => throw new InvalidOperationException("Received message is not a supported event type.")
+		};
+	}
+
+	/// <summary>
+	/// Dispatches a received event through the matching domain or integration event dispatcher.
+	/// </summary>
+	/// <param name="serviceProvider">The scoped service provider.</param>
+	/// <param name="eventObject">The deserialized event object.</param>
+	/// <param name="eventType">The resolved event CLR type.</param>
+	/// <param name="eventId">The event identifier.</param>
+	/// <returns>A task representing the dispatch operation.</returns>
+	/// <exception cref="InvalidOperationException">Thrown when the event object is not a supported event type.</exception>
+	private async Task DispatchReceivedEventAsync(IServiceProvider serviceProvider, object eventObject, Type eventType, Guid eventId)
+	{
+		switch (eventObject)
+		{
+			case IDomainEvent domainEvent:
+				var domainEventDispatcher = serviceProvider.GetRequiredService<IDomainEventDispatcher>();
+				_logger.LogDebug("Dispatching domain event: {EventType} ({EventId})", eventType.Name, eventId);
+				await domainEventDispatcher.DispatchAsync(domainEvent);
+				break;
+
+			case IIntegrationEvent integrationEvent:
+				var integrationEventDispatcher = serviceProvider.GetRequiredService<IIntegrationEventDispatcher>();
+				_logger.LogDebug("Dispatching integration event: {EventType} ({EventId})", eventType.Name, eventId);
+				await integrationEventDispatcher.DispatchAsync(integrationEvent);
+				break;
+
+			default:
+				throw new InvalidOperationException("Received message is not a supported event type.");
+		}
 	}
 
 	/// <summary>

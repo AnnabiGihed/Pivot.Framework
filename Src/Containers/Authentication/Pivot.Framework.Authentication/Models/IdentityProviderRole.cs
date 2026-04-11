@@ -8,11 +8,6 @@ namespace Pivot.Framework.Authentication.Models;
 public sealed class IdentityProviderRole
 {
 	/// <summary>
-	/// Role name.
-	/// </summary>
-	public string Name { get; set; } = string.Empty;
-
-	/// <summary>
 	/// Optional role description.
 	/// </summary>
 	public string? Description { get; set; }
@@ -21,4 +16,9 @@ public sealed class IdentityProviderRole
 	/// Optional provider-specific identifier.
 	/// </summary>
 	public string? ProviderRoleId { get; set; }
+
+    /// <summary>
+    /// Role name.
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
 }

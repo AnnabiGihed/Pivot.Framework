@@ -14,11 +14,6 @@ namespace Pivot.Framework.Authentication.Services;
 public interface IKeycloakAuthService
 {
 	/// <summary>
-	/// Observable auth state — fires whenever login/logout/refresh happens.
-	/// </summary>
-	event EventHandler<AuthStateChangedEventArgs>? AuthStateChanged;
-
-	/// <summary>
 	/// Whether the user is currently authenticated (has a valid, non-expired access token).
 	/// </summary>
 	bool IsAuthenticated { get; }
@@ -41,12 +36,17 @@ public interface IKeycloakAuthService
 	/// </summary>
 	Task<bool> LoginAsync(CancellationToken ct = default);
 
-	/// <summary>
-	/// Forces an unconditional token refresh regardless of current expiry state.
-	/// Call this after receiving a 401 from the API to ensure the token is fresh.
-	/// Throws <see cref="UnauthorizedAccessException"/> if no refresh token is available.
-	/// </summary>
-	Task<string> ForceRefreshAsync(CancellationToken ct = default);
+    /// <summary>
+    /// Observable auth state — fires whenever login/logout/refresh happens.
+    /// </summary>
+    event EventHandler<AuthStateChangedEventArgs>? AuthStateChanged;
+
+    /// <summary>
+    /// Forces an unconditional token refresh regardless of current expiry state.
+    /// Call this after receiving a 401 from the API to ensure the token is fresh.
+    /// Throws <see cref="UnauthorizedAccessException"/> if no refresh token is available.
+    /// </summary>
+    Task<string> ForceRefreshAsync(CancellationToken ct = default);
 
 	/// <summary>
 	/// Returns a valid access token, refreshing silently if the current one is near expiry.

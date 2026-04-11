@@ -10,11 +10,6 @@ namespace Pivot.Framework.Authentication.Services;
 public interface IIdentityProviderAdminService
 {
 	/// <summary>
-	/// Lists provider users optionally filtered by a search term.
-	/// </summary>
-	Task<IReadOnlyCollection<IdentityProviderUser>> GetUsersAsync(string? search = null, CancellationToken ct = default);
-
-	/// <summary>
 	/// Gets a user by provider identifier.
 	/// </summary>
 	Task<IdentityProviderUser?> GetUserByIdAsync(string userId, CancellationToken ct = default);
@@ -29,18 +24,23 @@ public interface IIdentityProviderAdminService
 	/// </summary>
 	Task<string> CreateUserAsync(CreateIdentityProviderUserRequest request, CancellationToken ct = default);
 
-	/// <summary>
-	/// Updates an existing user.
-	/// </summary>
-	Task UpdateUserAsync(string userId, UpdateIdentityProviderUserRequest request, CancellationToken ct = default);
+    /// <summary>
+    /// Assigns roles to a user.
+    /// </summary>
+    Task AssignRolesAsync(string userId, IReadOnlyCollection<string> roles, CancellationToken ct = default);
 
-	/// <summary>
-	/// Assigns roles to a user.
-	/// </summary>
-	Task AssignRolesAsync(string userId, IReadOnlyCollection<string> roles, CancellationToken ct = default);
+    /// <summary>
+    /// Removes roles from a user.
+    /// </summary>
+    Task RemoveRolesAsync(string userId, IReadOnlyCollection<string> roles, CancellationToken ct = default);
 
-	/// <summary>
-	/// Removes roles from a user.
-	/// </summary>
-	Task RemoveRolesAsync(string userId, IReadOnlyCollection<string> roles, CancellationToken ct = default);
+    /// <summary>
+    /// Updates an existing user.
+    /// </summary>
+    Task UpdateUserAsync(string userId, UpdateIdentityProviderUserRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Lists provider users optionally filtered by a search term.
+    /// </summary>
+    Task<IReadOnlyCollection<IdentityProviderUser>> GetUsersAsync(string? search = null, CancellationToken ct = default);
 }

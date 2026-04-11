@@ -8,11 +8,6 @@ namespace Pivot.Framework.Authentication.Models;
 public sealed class AuthSession
 {
 	/// <summary>
-	/// Session identifier.
-	/// </summary>
-	public string SessionId { get; set; } = string.Empty;
-
-	/// <summary>
 	/// Subject identifier associated with the session.
 	/// </summary>
 	public string? SubjectId { get; set; }
@@ -36,4 +31,9 @@ public sealed class AuthSession
 	/// Session expiry timestamp.
 	/// </summary>
 	public DateTimeOffset ExpiresAt { get; set; }
+
+    /// <summary>
+    /// Session identifier.
+    /// </summary>
+    public string SessionId { get; set; } = string.Empty;
 }

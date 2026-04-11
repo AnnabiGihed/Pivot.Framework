@@ -7,18 +7,18 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public sealed class AuthLogoutRequest
 {
-	/// <summary>
-	/// Optional refresh token to revoke/terminate.
-	/// </summary>
-	public string? RefreshToken { get; set; }
+    /// <summary>
+    /// Optional session identifier to clear from session storage.
+    /// </summary>
+    public string? SessionId { get; set; }
 
-	/// <summary>
-	/// Optional ID token hint forwarded to the identity provider.
-	/// </summary>
-	public string? IdTokenHint { get; set; }
-
-	/// <summary>
-	/// Optional session identifier to clear from session storage.
-	/// </summary>
-	public string? SessionId { get; set; }
+    /// <summary>
+    /// Optional ID token hint forwarded to the identity provider.
+    /// </summary>
+    public string? IdTokenHint { get; set; }
+    
+    /// <summary>
+    /// Optional refresh token to revoke/terminate.
+    /// </summary>
+    public string? RefreshToken { get; set; }
 }

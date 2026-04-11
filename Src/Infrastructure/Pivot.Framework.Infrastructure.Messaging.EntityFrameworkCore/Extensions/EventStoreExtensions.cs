@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Pivot.Framework.Infrastructure.Abstraction.Persistence;
+using Pivot.Framework.Infrastructure.Abstraction.EventStore.Versioning;
 using Pivot.Framework.Infrastructure.Abstraction.EventStore.Projections;
 using Pivot.Framework.Infrastructure.Abstraction.EventStore.Repositories;
-using Pivot.Framework.Infrastructure.Abstraction.EventStore.Versioning;
-using Pivot.Framework.Infrastructure.Abstraction.Persistence;
+using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.EventStore.Versioning;
 using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.EventStore.Projections;
 using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.EventStore.Repositories;
-using Pivot.Framework.Infrastructure.Persistence.EntityFrameworkCore.EventStore.Versioning;
 
 namespace Pivot.Framework.Infrastructure.Messaging.EntityFrameworkCore.Extensions;
 
@@ -48,9 +48,7 @@ public static class EventStoreExtensions
 	/// <param name="services">The service collection.</param>
 	/// <param name="upgrader">The event upgrader instance.</param>
 	/// <returns>The service collection for chaining.</returns>
-	public static IServiceCollection AddEventUpgrader<TEvent>(
-		this IServiceCollection services,
-		IEventUpgrader<TEvent> upgrader)
+	public static IServiceCollection AddEventUpgrader<TEvent>(this IServiceCollection services, IEventUpgrader<TEvent> upgrader)
 	{
 		ArgumentNullException.ThrowIfNull(services);
 		ArgumentNullException.ThrowIfNull(upgrader);

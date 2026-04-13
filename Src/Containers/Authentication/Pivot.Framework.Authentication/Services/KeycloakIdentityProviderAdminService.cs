@@ -35,9 +35,9 @@ public sealed class KeycloakIdentityProviderAdminService : IIdentityProviderAdmi
     /// <exception cref="ArgumentNullException"></exception>
     public KeycloakIdentityProviderAdminService(HttpClient httpClient, IOptions<KeycloakOptions> options)
 	{
-        _options.Validate();
-        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _options.Validate();
 	}
     #endregion
 

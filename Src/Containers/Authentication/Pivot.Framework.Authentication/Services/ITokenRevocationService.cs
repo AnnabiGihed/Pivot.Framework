@@ -7,8 +7,10 @@ namespace Pivot.Framework.Authentication.Services;
 /// </summary>
 public interface ITokenRevocationService
 {
+	#region Methods
 	/// <summary>
 	/// Revokes a token at the identity provider.
 	/// </summary>
 	Task RevokeTokenAsync(string token, string? tokenTypeHint = null, CancellationToken ct = default);
+	#endregion
 }

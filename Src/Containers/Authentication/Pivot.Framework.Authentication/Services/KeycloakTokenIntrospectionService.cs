@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using Pivot.Framework.Authentication.Helpers;
 using Pivot.Framework.Authentication.Models;
+using Pivot.Framework.Authentication.Helpers;
 
 namespace Pivot.Framework.Authentication.Services;
 
@@ -12,16 +12,36 @@ namespace Pivot.Framework.Authentication.Services;
 /// </summary>
 public sealed class KeycloakTokenIntrospectionService : ITokenIntrospectionService
 {
-	private readonly HttpClient _httpClient;
-	private readonly KeycloakOptions _options;
+    #region Dependencies
+    /// <summary>
+    /// HTTP client configured for Keycloak interactions, injected via DI.
+    /// </summary>
+    private readonly HttpClient _httpClient;
 
+    /// <summary>
+    /// Keycloak options containing necessary configuration for token introspection, injected via DI.
+    /// </summary>
+    private readonly KeycloakOptions _options;
+	#endregion
+
+	#region Constructor
+	/// <summary>
+	/// Initializes a new instance of <see cref="KeycloakTokenIntrospectionService"/>.
+	/// </summary>
+	/// <param name="httpClient">The HTTP client configured for Keycloak.</param>
+	/// <param name="options">The Keycloak options.</param>
 	public KeycloakTokenIntrospectionService(HttpClient httpClient, IOptions<KeycloakOptions> options)
 	{
 		_httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 		_options = options?.Value ?? throw new ArgumentNullException(nameof(options));
 		_options.Validate();
 	}
+	#endregion
 
+	#region ITokenIntrospectionService Implementation
+	/// <summary>
+	/// Introspects the supplied token through Keycloak.
+	/// </summary>
 	public async Task<TokenIntrospectionResult> IntrospectTokenAsync(string token, CancellationToken ct = default)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(token);
@@ -57,4 +77,5 @@ public sealed class KeycloakTokenIntrospectionService : ITokenIntrospectionServi
 			Roles = []
 		};
 	}
+	#endregion
 }

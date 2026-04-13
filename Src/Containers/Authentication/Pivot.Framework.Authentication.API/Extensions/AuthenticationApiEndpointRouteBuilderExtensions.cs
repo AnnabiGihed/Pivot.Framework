@@ -1,12 +1,12 @@
-using System.IdentityModel.Tokens.Jwt;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Mvc;
-using Pivot.Framework.Authentication.API.Contracts;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
+using System.IdentityModel.Tokens.Jwt;
 using Pivot.Framework.Authentication.Models;
-using Pivot.Framework.Authentication.Services;
 using Pivot.Framework.Authentication.Storage;
+using Pivot.Framework.Authentication.Services;
+using Pivot.Framework.Authentication.API.Contracts;
 
 namespace Pivot.Framework.Authentication.API.Extensions;
 
@@ -17,6 +17,7 @@ namespace Pivot.Framework.Authentication.API.Extensions;
 /// </summary>
 public static class AuthenticationApiEndpointRouteBuilderExtensions
 {
+	#region Public Methods
 	/// <summary>
 	/// Maps a standard authentication endpoint group.
 	/// </summary>
@@ -34,6 +35,7 @@ public static class AuthenticationApiEndpointRouteBuilderExtensions
 
 		return group;
 	}
+	#endregion
 }
 
 /// <summary>
@@ -43,42 +45,40 @@ public static class AuthenticationApiEndpointRouteBuilderExtensions
 /// </summary>
 public static class AuthenticationApiHandlers
 {
-	public static async Task<IResult> LoginAsync(
-		[FromBody] AuthAuthorizationRequest request,
-		[FromServices] IIdentityProviderAuthService authService,
-		CancellationToken ct)
+	#region Public Methods
+	/// <summary>
+	/// Starts the authorization flow and returns the provider login URL.
+	/// </summary>
+	public static async Task<IResult> LoginAsync([FromBody] AuthAuthorizationRequest request, [FromServices] IIdentityProviderAuthService authService, CancellationToken ct)
 	{
 		var result = await authService.BuildAuthorizationUrlAsync(request, ct);
 		return Results.Ok(result);
 	}
 
-	public static async Task<IResult> CallbackAsync(
-		[FromBody] AuthCodeExchangeRequest request,
-		[FromServices] IIdentityProviderAuthService authService,
-		[FromServices] IAuthSessionStore? sessionStore,
-		CancellationToken ct)
+	/// <summary>
+	/// Handles the authorization callback and persists session state when enabled.
+	/// </summary>
+	public static async Task<IResult> CallbackAsync([FromBody] AuthCodeExchangeRequest request, [FromServices] IIdentityProviderAuthService authService, [FromServices] IAuthSessionStore? sessionStore, CancellationToken ct)
 	{
 		var result = await authService.ExchangeAuthorizationCodeAsync(request, ct);
 		await PersistSessionAsync(request.SessionId, result, sessionStore, ct);
 		return Results.Ok(result);
 	}
 
-	public static async Task<IResult> RefreshAsync(
-		[FromBody] AuthRefreshTokenRequest request,
-		[FromServices] IIdentityProviderAuthService authService,
-		[FromServices] IAuthSessionStore? sessionStore,
-		CancellationToken ct)
+	/// <summary>
+	/// Refreshes tokens and updates the persisted session when enabled.
+	/// </summary>
+	public static async Task<IResult> RefreshAsync([FromBody] AuthRefreshTokenRequest request, [FromServices] IIdentityProviderAuthService authService, [FromServices] IAuthSessionStore? sessionStore, CancellationToken ct)
 	{
 		var result = await authService.RefreshTokenAsync(request, ct);
 		await PersistSessionAsync(request.SessionId, result, sessionStore, ct);
 		return Results.Ok(result);
 	}
 
-	public static async Task<IResult> LogoutAsync(
-		[FromBody] AuthLogoutRequest request,
-		[FromServices] IIdentityProviderAuthService authService,
-		[FromServices] IAuthSessionStore? sessionStore,
-		CancellationToken ct)
+	/// <summary>
+	/// Logs out from the provider and clears any stored session.
+	/// </summary>
+	public static async Task<IResult> LogoutAsync([FromBody] AuthLogoutRequest request, [FromServices] IIdentityProviderAuthService authService, [FromServices] IAuthSessionStore? sessionStore, CancellationToken ct)
 	{
 		await authService.LogoutAsync(request, ct);
 
@@ -88,10 +88,10 @@ public static class AuthenticationApiHandlers
 		return Results.Ok();
 	}
 
-	public static async Task<IResult> ProfileAsync(
-		HttpContext httpContext,
-		[FromServices] IIdentityProviderAuthService authService,
-		CancellationToken ct)
+	/// <summary>
+	/// Returns the authenticated user profile based on the bearer token.
+	/// </summary>
+	public static async Task<IResult> ProfileAsync(HttpContext httpContext, [FromServices] IIdentityProviderAuthService authService, CancellationToken ct)
 	{
 		if (!TryGetBearerToken(httpContext, out var accessToken))
 			return Results.Unauthorized();
@@ -100,15 +100,20 @@ public static class AuthenticationApiHandlers
 		return Results.Ok(profile);
 	}
 
-	public static async Task<IResult> IntrospectAsync(
-		[FromBody] IntrospectTokenRequest request,
-		[FromServices] ITokenIntrospectionService introspectionService,
-		CancellationToken ct)
+	/// <summary>
+	/// Introspects the supplied access token through the provider.
+	/// </summary>
+	public static async Task<IResult> IntrospectAsync([FromBody] IntrospectTokenRequest request, [FromServices] ITokenIntrospectionService introspectionService, CancellationToken ct)
 	{
 		var result = await introspectionService.IntrospectTokenAsync(request.Token, ct);
 		return Results.Ok(result);
 	}
+	#endregion
 
+	#region Private Helpers
+	/// <summary>
+	/// Extracts a bearer token from the authorization header.
+	/// </summary>
 	private static bool TryGetBearerToken(HttpContext httpContext, out string? accessToken)
 	{
 		accessToken = null;
@@ -124,11 +129,10 @@ public static class AuthenticationApiHandlers
 		return !string.IsNullOrWhiteSpace(accessToken);
 	}
 
-	private static async Task PersistSessionAsync(
-		string? sessionId,
-		AuthTokenResponse tokens,
-		IAuthSessionStore? sessionStore,
-		CancellationToken ct)
+	/// <summary>
+	/// Persists the session information using the session store when available.
+	/// </summary>
+	private static async Task PersistSessionAsync(string? sessionId, AuthTokenResponse tokens, IAuthSessionStore? sessionStore, CancellationToken ct)
 	{
 		if (sessionStore is null || string.IsNullOrWhiteSpace(sessionId))
 			return;
@@ -145,4 +149,5 @@ public static class AuthenticationApiHandlers
 			ExpiresAt = tokens.ExpiresAt
 		}, ct);
 	}
+	#endregion
 }

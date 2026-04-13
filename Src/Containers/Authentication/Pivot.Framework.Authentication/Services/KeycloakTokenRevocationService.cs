@@ -9,16 +9,36 @@ namespace Pivot.Framework.Authentication.Services;
 /// </summary>
 public sealed class KeycloakTokenRevocationService : ITokenRevocationService
 {
-	private readonly HttpClient _httpClient;
-	private readonly KeycloakOptions _options;
+    #region Dependencies
+    /// <summary>
+    /// HTTP client configured for Keycloak interactions, injected via DI.
+    /// </summary>
+    private readonly HttpClient _httpClient;
 
+    /// <summary>
+    /// Keycloak options containing necessary configuration for token revocation, injected via DI.
+    /// </summary>
+    private readonly KeycloakOptions _options;
+	#endregion
+
+	#region Constructor
+	/// <summary>
+	/// Initializes a new instance of <see cref="KeycloakTokenRevocationService"/>.
+	/// </summary>
+	/// <param name="httpClient">The HTTP client configured for Keycloak.</param>
+	/// <param name="options">The Keycloak options.</param>
 	public KeycloakTokenRevocationService(HttpClient httpClient, IOptions<KeycloakOptions> options)
 	{
 		_httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 		_options = options?.Value ?? throw new ArgumentNullException(nameof(options));
 		_options.Validate();
 	}
+	#endregion
 
+	#region ITokenRevocationService Implementation
+	/// <summary>
+	/// Revokes the supplied token through Keycloak.
+	/// </summary>
 	public async Task RevokeTokenAsync(string token, string? tokenTypeHint = null, CancellationToken ct = default)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(token);
@@ -36,4 +56,5 @@ public sealed class KeycloakTokenRevocationService : ITokenRevocationService
 			.ToDictionary(pair => pair.Key, pair => pair.Value!)), ct);
 		response.EnsureSuccessStatusCode();
 	}
+	#endregion
 }

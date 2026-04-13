@@ -9,8 +9,10 @@ namespace Pivot.Framework.Authentication.Services;
 /// </summary>
 public interface ITokenIntrospectionService
 {
+	#region Methods
 	/// <summary>
 	/// Introspects a token and returns the provider response.
 	/// </summary>
 	Task<TokenIntrospectionResult> IntrospectTokenAsync(string token, CancellationToken ct = default);
+	#endregion
 }

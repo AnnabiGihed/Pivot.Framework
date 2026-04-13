@@ -11,19 +11,25 @@ namespace Pivot.Framework.Authentication.Storage;
 /// </summary>
 public sealed class InMemoryAuthSessionStore : IAuthSessionStore
 {
-	private readonly ConcurrentDictionary<string, AuthSession> _sessions = new(StringComparer.Ordinal);
+    #region Dependencies
+    /// <summary>
+    /// In-memory storage for authentication sessions, keyed by session ID. The use of a concurrent dictionary
+    /// </summary>
+    private readonly ConcurrentDictionary<string, AuthSession> _sessions = new(StringComparer.Ordinal);
+	#endregion
 
+	#region IAuthSessionStore Implementation
+    /// <inheritdoc />
+    public Task RemoveAsync(string sessionId, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+
+        _sessions.TryRemove(sessionId, out _);
+        return Task.CompletedTask;
+    }
+    
 	/// <inheritdoc />
-	public Task<AuthSession?> GetAsync(string sessionId, CancellationToken ct = default)
-	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
-
-		_sessions.TryGetValue(sessionId, out var session);
-		return Task.FromResult(session);
-	}
-
-	/// <inheritdoc />
-	public Task SaveAsync(AuthSession session, CancellationToken ct = default)
+    public Task SaveAsync(AuthSession session, CancellationToken ct = default)
 	{
 		ArgumentNullException.ThrowIfNull(session);
 		ArgumentException.ThrowIfNullOrWhiteSpace(session.SessionId);
@@ -32,12 +38,13 @@ public sealed class InMemoryAuthSessionStore : IAuthSessionStore
 		return Task.CompletedTask;
 	}
 
-	/// <inheritdoc />
-	public Task RemoveAsync(string sessionId, CancellationToken ct = default)
-	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+    /// <inheritdoc />
+    public Task<AuthSession?> GetAsync(string sessionId, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
 
-		_sessions.TryRemove(sessionId, out _);
-		return Task.CompletedTask;
-	}
+        _sessions.TryGetValue(sessionId, out var session);
+        return Task.FromResult(session);
+    }
+    #endregion
 }

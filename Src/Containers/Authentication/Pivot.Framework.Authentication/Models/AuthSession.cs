@@ -7,15 +7,16 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public sealed class AuthSession
 {
-	/// <summary>
-	/// Subject identifier associated with the session.
-	/// </summary>
-	public string? SubjectId { get; set; }
+    #region Properties
+    /// <summary>
+    /// Username associated with the session.
+    /// </summary>
+    public string? Username { get; set; }
 
-	/// <summary>
-	/// Username associated with the session.
-	/// </summary>
-	public string? Username { get; set; }
+    /// <summary>
+    /// Subject identifier associated with the session.
+    /// </summary>
+    public string? SubjectId { get; set; }
 
 	/// <summary>
 	/// Access token tracked by the session.
@@ -36,4 +37,5 @@ public sealed class AuthSession
     /// Session identifier.
     /// </summary>
     public string SessionId { get; set; } = string.Empty;
+    #endregion
 }

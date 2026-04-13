@@ -6,6 +6,7 @@ namespace Pivot.Framework.Authentication.Tests.Storage;
 
 public class InMemoryAuthSessionStoreTests
 {
+	#region Tests
 	[Fact]
 	public async Task SaveGetRemoveAsync_ShouldRoundTripSession()
 	{
@@ -28,4 +29,5 @@ public class InMemoryAuthSessionStoreTests
 		stored!.SubjectId.Should().Be("user-1");
 		removed.Should().BeNull();
 	}
+	#endregion
 }

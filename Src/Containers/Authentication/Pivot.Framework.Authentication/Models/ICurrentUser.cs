@@ -12,6 +12,7 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public interface ICurrentUser
 {
+	#region Properties
 	/// <summary>
 	/// Keycloak subject (sub) claim parsed as a <see cref="Guid"/>.
 	/// Keycloak always issues UUIDs for the sub claim, making this a safe parse.
@@ -25,9 +26,6 @@ public interface ICurrentUser
     /// <summary>Keycloak preferred_username.</summary>
     string? Username { get; }
 
-    /// <summary>Returns true if the user has the given role.</summary>
-    bool IsInRole(string role);
-
     /// <summary>Display name (first + last, or preferred_username fallback).</summary>
     string? DisplayName { get; }
 
@@ -36,6 +34,13 @@ public interface ICurrentUser
 
     /// <summary>Raw ClaimsPrincipal if you need anything else.</summary>
     ClaimsPrincipal? Principal { get; }
+
     /// <summary>All realm + client roles flattened.</summary>
     IReadOnlyList<string> Roles { get; }
+	#endregion
+
+	#region Methods
+    /// <summary>Returns true if the user has the given role.</summary>
+    bool IsInRole(string role);
+	#endregion
 }

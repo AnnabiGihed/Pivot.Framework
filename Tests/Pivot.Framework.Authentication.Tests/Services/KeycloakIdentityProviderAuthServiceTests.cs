@@ -9,6 +9,7 @@ namespace Pivot.Framework.Authentication.Tests.Services;
 
 public class KeycloakIdentityProviderAuthServiceTests
 {
+	#region Test Infrastructure
 	private static readonly KeycloakOptions Settings = new()
 	{
 		BaseUrl = "https://auth.example.com",
@@ -17,7 +18,9 @@ public class KeycloakIdentityProviderAuthServiceTests
 		ClientSecret = "secret",
 		Audience = "pivot-api"
 	};
+	#endregion
 
+	#region Tests
 	[Fact]
 	public async Task BuildAuthorizationUrlAsync_ShouldIncludeExpectedParameters()
 	{
@@ -92,11 +95,14 @@ public class KeycloakIdentityProviderAuthServiceTests
 		result.Email.Should().Be("gihed@example.com");
 		handler.Requests.Single().Headers.Authorization!.Scheme.Should().Be("Bearer");
 	}
+	#endregion
 
+	#region Helpers
 	private static KeycloakIdentityProviderAuthService CreateService(StubHttpMessageHandler handler)
 	{
 		return new KeycloakIdentityProviderAuthService(
 			new HttpClient(handler),
 			Microsoft.Extensions.Options.Options.Create(Settings));
 	}
+	#endregion
 }

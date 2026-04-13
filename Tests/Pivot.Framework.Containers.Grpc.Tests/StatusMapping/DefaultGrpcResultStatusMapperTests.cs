@@ -7,8 +7,11 @@ namespace Pivot.Framework.Containers.Grpc.Tests.StatusMapping;
 
 public class DefaultGrpcResultStatusMapperTests
 {
+	#region Test Infrastructure
 	private readonly DefaultGrpcResultStatusMapper _mapper = new();
+	#endregion
 
+	#region Tests
 	[Theory]
 	[InlineData(ResultExceptionType.ValidationError, StatusCode.InvalidArgument)]
 	[InlineData(ResultExceptionType.NotFound, StatusCode.NotFound)]
@@ -32,4 +35,5 @@ public class DefaultGrpcResultStatusMapperTests
 
 		act.Should().Throw<InvalidOperationException>();
 	}
+	#endregion
 }

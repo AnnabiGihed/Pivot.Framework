@@ -7,8 +7,10 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public sealed class AuthAuthorizationResult
 {
+	#region Properties
 	/// <summary>
 	/// The fully qualified authorization URL.
 	/// </summary>
 	public string AuthorizationUrl { get; set; } = string.Empty;
+	#endregion
 }

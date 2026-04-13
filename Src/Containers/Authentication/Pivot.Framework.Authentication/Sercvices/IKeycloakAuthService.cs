@@ -13,6 +13,7 @@ namespace Pivot.Framework.Authentication.Services;
 /// </summary>
 public interface IKeycloakAuthService
 {
+	#region Properties
 	/// <summary>
 	/// Whether the user is currently authenticated (has a valid, non-expired access token).
 	/// </summary>
@@ -22,7 +23,16 @@ public interface IKeycloakAuthService
 	/// Claims from the current access token.
 	/// </summary>
 	ClaimsPrincipal? User { get; }
+	#endregion
 
+	#region Events
+    /// <summary>
+    /// Observable auth state — fires whenever login/logout/refresh happens.
+    /// </summary>
+    event EventHandler<AuthStateChangedEventArgs>? AuthStateChanged;
+	#endregion
+
+	#region Methods
 	/// <summary>
 	/// Logs the user out: revokes the refresh token, clears local/session storage,
 	/// and redirects to the Keycloak end-session endpoint.
@@ -37,26 +47,22 @@ public interface IKeycloakAuthService
 	Task<bool> LoginAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Observable auth state — fires whenever login/logout/refresh happens.
-    /// </summary>
-    event EventHandler<AuthStateChangedEventArgs>? AuthStateChanged;
-
-    /// <summary>
     /// Forces an unconditional token refresh regardless of current expiry state.
     /// Call this after receiving a 401 from the API to ensure the token is fresh.
     /// Throws <see cref="UnauthorizedAccessException"/> if no refresh token is available.
     /// </summary>
     Task<string> ForceRefreshAsync(CancellationToken ct = default);
 
-	/// <summary>
-	/// Returns a valid access token, refreshing silently if the current one is near expiry.
-	/// Throws <see cref="UnauthorizedAccessException"/> if not logged in or refresh is impossible.
-	/// </summary>
-	Task<string> GetAccessTokenAsync(CancellationToken ct = default);
+    /// <summary>
+    /// Returns a valid access token, refreshing silently if the current one is near expiry.
+    /// Throws <see cref="UnauthorizedAccessException"/> if not logged in or refresh is impossible.
+    /// </summary>
+    Task<string> GetAccessTokenAsync(CancellationToken ct = default);
 
 	/// <summary>
 	/// Tries to restore a persisted session on app/page start.
 	/// Call this in your app shell or layout before navigating.
 	/// </summary>
 	Task<bool> TryRestoreSessionAsync(CancellationToken ct = default);
+	#endregion
 }

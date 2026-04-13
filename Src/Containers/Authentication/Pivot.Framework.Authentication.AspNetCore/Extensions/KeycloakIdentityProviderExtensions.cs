@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Configuration;
+using Pivot.Framework.Authentication.Storage;
+using Pivot.Framework.Authentication.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Pivot.Framework.Authentication.Services;
-using Pivot.Framework.Authentication.Storage;
 
 namespace Pivot.Framework.Authentication.AspNetCore.Extensions;
 
@@ -13,10 +13,22 @@ namespace Pivot.Framework.Authentication.AspNetCore.Extensions;
 /// </summary>
 public static class KeycloakIdentityProviderExtensions
 {
-	/// <summary>
-	/// Registers Keycloak-backed backend auth services and admin integrations.
-	/// </summary>
-	public static IServiceCollection AddKeycloakIdentityProviderServices(this IServiceCollection services, IConfiguration configuration)
+    #region Public Methods
+    /// <summary>
+    /// Registers the in-memory auth session store.
+    /// </summary>
+    public static IServiceCollection AddInMemoryAuthSessions(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.TryAddSingleton<IAuthSessionStore, InMemoryAuthSessionStore>();
+        return services;
+    }
+    
+    /// <summary>
+    /// Registers Keycloak-backed backend auth services and admin integrations.
+    /// </summary>
+    public static IServiceCollection AddKeycloakIdentityProviderServices(this IServiceCollection services, IConfiguration configuration)
 	{
 		ArgumentNullException.ThrowIfNull(services);
 		ArgumentNullException.ThrowIfNull(configuration);
@@ -30,15 +42,5 @@ public static class KeycloakIdentityProviderExtensions
 
 		return services;
 	}
-
-	/// <summary>
-	/// Registers the in-memory auth session store.
-	/// </summary>
-	public static IServiceCollection AddInMemoryAuthSessions(this IServiceCollection services)
-	{
-		ArgumentNullException.ThrowIfNull(services);
-
-		services.TryAddSingleton<IAuthSessionStore, InMemoryAuthSessionStore>();
-		return services;
-	}
+	#endregion
 }

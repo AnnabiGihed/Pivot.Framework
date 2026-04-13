@@ -8,6 +8,7 @@
 /// </summary>
 public interface IKeycloakTokenStorage
 {
+	#region Methods
 	/// <summary>
 	/// Clears any persisted Keycloak tokens from storage.
 	/// </summary>
@@ -23,4 +24,5 @@ public interface IKeycloakTokenStorage
 	/// Persists the provided Keycloak token set to storage, overwriting any existing value.
 	/// </summary>
 	Task SaveAsync(KeycloakTokenSet tokens, CancellationToken ct = default);
+	#endregion
 }

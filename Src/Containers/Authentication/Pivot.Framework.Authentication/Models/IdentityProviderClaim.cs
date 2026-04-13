@@ -7,6 +7,7 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public sealed class IdentityProviderClaim
 {
+	#region Properties
 	/// <summary>
 	/// Claim type/name.
 	/// </summary>
@@ -16,4 +17,5 @@ public sealed class IdentityProviderClaim
 	/// Claim value.
 	/// </summary>
 	public string Value { get; set; } = string.Empty;
+	#endregion
 }

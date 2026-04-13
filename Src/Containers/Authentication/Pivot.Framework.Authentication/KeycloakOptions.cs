@@ -21,10 +21,21 @@ public sealed class KeycloakOptions
 	/// </summary>
 	public string? ClientSecret { get; set; }
 
-	/// <summary>
-	/// Keycloak realm name.
-	/// </summary>
-	public string Realm { get; set; } = string.Empty;
+    /// <summary>
+    /// Optional dedicated client_id used for admin and machine-to-machine operations.
+    /// Falls back to <see cref="ClientId"/> when omitted.
+    /// </summary>
+    public string? AdminClientId { get; set; }
+
+    /// <summary>
+    /// Optional dedicated client_secret used for admin and machine-to-machine operations.
+    /// Falls back to <see cref="ClientSecret"/> when omitted.
+    /// </summary>
+    public string? AdminClientSecret { get; set; }
+    /// <summary>
+    /// Keycloak realm name.
+    /// </summary>
+    public string Realm { get; set; } = string.Empty;
 
 	/// <summary>
 	/// Base URL of the Keycloak server. E.g. https://auth.example.com
@@ -35,18 +46,6 @@ public sealed class KeycloakOptions
 	/// OAuth2 client_id for the application.
 	/// </summary>
 	public string ClientId { get; set; } = string.Empty;
-
-	/// <summary>
-	/// Optional dedicated client_id used for admin and machine-to-machine operations.
-	/// Falls back to <see cref="ClientId"/> when omitted.
-	/// </summary>
-	public string? AdminClientId { get; set; }
-
-	/// <summary>
-	/// Optional dedicated client_secret used for admin and machine-to-machine operations.
-	/// Falls back to <see cref="ClientSecret"/> when omitted.
-	/// </summary>
-	public string? AdminClientSecret { get; set; }
 
 	/// <summary>
 	/// Keycloak audience claim. Often same as ClientId, or a dedicated API audience.
@@ -80,40 +79,40 @@ public sealed class KeycloakOptions
 	/// </summary>
 	public string LogoutUrl => $"{IssuerUrl}/protocol/openid-connect/logout";
 
-	/// <summary>
-	/// OIDC well-known metadata URL.
-	/// </summary>
-	public string MetadataUrl => $"{IssuerUrl}/.well-known/openid-configuration";
+    /// <summary>
+    /// Token revocation endpoint.
+    /// </summary>
+    public string RevocationUrl => $"{IssuerUrl}/protocol/openid-connect/revoke";
+
+    /// <summary>
+    /// Realm administration API base URL.
+    /// </summary>
+    public string AdminBaseUrl => $"{BaseUrl.TrimEnd('/')}/admin/realms/{Realm}";
+
+    /// <summary>
+    /// UserInfo endpoint for resolving the authenticated user's profile.
+    /// </summary>
+    public string UserInfoUrl => $"{IssuerUrl}/protocol/openid-connect/userinfo";
+
+    /// <summary>
+    /// OIDC well-known metadata URL.
+    /// </summary>
+    public string MetadataUrl => $"{IssuerUrl}/.well-known/openid-configuration";
 
 	/// <summary>
 	/// Authorization endpoint (used by Swagger UI and MAUI).
 	/// </summary>
 	public string AuthorizationUrl => $"{IssuerUrl}/protocol/openid-connect/auth";
 
-	/// <summary>
-	/// UserInfo endpoint for resolving the authenticated user's profile.
-	/// </summary>
-	public string UserInfoUrl => $"{IssuerUrl}/protocol/openid-connect/userinfo";
+    /// <summary>
+    /// Token introspection endpoint.
+    /// </summary>
+    public string IntrospectionUrl => $"{IssuerUrl}/protocol/openid-connect/token/introspect";
 
-	/// <summary>
-	/// Token introspection endpoint.
-	/// </summary>
-	public string IntrospectionUrl => $"{IssuerUrl}/protocol/openid-connect/token/introspect";
-
-	/// <summary>
-	/// Token revocation endpoint.
-	/// </summary>
-	public string RevocationUrl => $"{IssuerUrl}/protocol/openid-connect/revoke";
-
-	/// <summary>
-	/// Realm administration API base URL.
-	/// </summary>
-	public string AdminBaseUrl => $"{BaseUrl.TrimEnd('/')}/admin/realms/{Realm}";
-
-	/// <summary>
-	/// Effective administrative client identifier.
-	/// </summary>
-	public string EffectiveAdminClientId => string.IsNullOrWhiteSpace(AdminClientId) ? ClientId : AdminClientId;
+    /// <summary>
+    /// Effective administrative client identifier.
+    /// </summary>
+    public string EffectiveAdminClientId => string.IsNullOrWhiteSpace(AdminClientId) ? ClientId : AdminClientId;
 
 	/// <summary>
 	/// Effective administrative client secret.

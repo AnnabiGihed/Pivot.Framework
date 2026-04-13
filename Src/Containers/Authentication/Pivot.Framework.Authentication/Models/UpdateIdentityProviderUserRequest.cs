@@ -7,6 +7,7 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public sealed class UpdateIdentityProviderUserRequest
 {
+	#region Properties
 	/// <summary>
 	/// Optional email address.
 	/// </summary>
@@ -31,4 +32,5 @@ public sealed class UpdateIdentityProviderUserRequest
     /// Optional first name.
     /// </summary>
     public string? FirstName { get; set; }
+	#endregion
 }

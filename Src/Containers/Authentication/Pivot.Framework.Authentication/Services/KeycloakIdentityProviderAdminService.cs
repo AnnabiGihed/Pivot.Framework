@@ -1,6 +1,6 @@
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text.Json;
+using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using Microsoft.Extensions.Options;
 using Pivot.Framework.Authentication.Helpers;
 using Pivot.Framework.Authentication.Models;
@@ -35,9 +35,9 @@ public sealed class KeycloakIdentityProviderAdminService : IIdentityProviderAdmi
     /// <exception cref="ArgumentNullException"></exception>
     public KeycloakIdentityProviderAdminService(HttpClient httpClient, IOptions<KeycloakOptions> options)
 	{
-		_httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-		_options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-		_options.Validate();
+        _options.Validate();
+        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 	}
     #endregion
 

@@ -7,33 +7,35 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public sealed class CreateIdentityProviderUserRequest
 {
-	/// <summary>
-	/// Username for the new user.
-	/// </summary>
-	public string Username { get; set; } = string.Empty;
-
+	#region Properties
 	/// <summary>
 	/// Optional email address.
 	/// </summary>
 	public string? Email { get; set; }
 
-	/// <summary>
-	/// Optional first name.
-	/// </summary>
-	public string? FirstName { get; set; }
+    /// <summary>
+    /// Optional last name.
+    /// </summary>
+    public string? LastName { get; set; }
 
-	/// <summary>
-	/// Optional last name.
-	/// </summary>
-	public string? LastName { get; set; }
+    /// <summary>
+    /// Optional first name.
+    /// </summary>
+    public string? FirstName { get; set; }
 
 	/// <summary>
 	/// Whether the user should be enabled immediately.
 	/// </summary>
 	public bool IsEnabled { get; set; } = true;
 
-	/// <summary>
-	/// Optional initial roles.
-	/// </summary>
-	public IReadOnlyCollection<string> Roles { get; set; } = [];
+    /// <summary>
+    /// Username for the new user.
+    /// </summary>
+    public string Username { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional initial roles.
+    /// </summary>
+    public IReadOnlyCollection<string> Roles { get; set; } = [];
+	#endregion
 }

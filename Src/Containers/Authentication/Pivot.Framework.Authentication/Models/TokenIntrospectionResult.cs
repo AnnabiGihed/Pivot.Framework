@@ -7,6 +7,7 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public sealed class TokenIntrospectionResult
 {
+	#region Properties
 	/// <summary>
 	/// Whether the token is active.
 	/// </summary>
@@ -41,4 +42,5 @@ public sealed class TokenIntrospectionResult
 	/// Provider roles when exposed by the provider.
 	/// </summary>
 	public IReadOnlyCollection<string> Roles { get; set; } = [];
+	#endregion
 }

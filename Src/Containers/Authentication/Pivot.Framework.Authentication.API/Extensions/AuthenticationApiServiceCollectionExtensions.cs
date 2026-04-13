@@ -9,6 +9,7 @@ namespace Pivot.Framework.Authentication.API.Extensions;
 /// </summary>
 public static class AuthenticationApiServiceCollectionExtensions
 {
+	#region Public Methods
 	/// <summary>
 	/// Registers common services used by the authentication API endpoints.
 	/// </summary>
@@ -19,4 +20,5 @@ public static class AuthenticationApiServiceCollectionExtensions
 		services.AddEndpointsApiExplorer();
 		return services;
 	}
+	#endregion
 }

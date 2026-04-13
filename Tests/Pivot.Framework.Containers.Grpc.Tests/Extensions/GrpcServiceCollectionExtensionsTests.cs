@@ -14,6 +14,7 @@ namespace Pivot.Framework.Containers.Grpc.Tests.Extensions;
 
 public class GrpcServiceCollectionExtensionsTests
 {
+	#region Tests
 	[Fact]
 	public void AddPivotGrpc_ShouldRegisterCoreMappersAndExceptionInterceptor()
 	{
@@ -55,4 +56,5 @@ public class GrpcServiceCollectionExtensionsTests
 
 		options.Interceptors.Should().NotBeEmpty();
 	}
+	#endregion
 }

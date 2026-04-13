@@ -10,6 +10,7 @@ namespace Pivot.Framework.Containers.Grpc.Tests.StatusMapping;
 
 public class DefaultGrpcExceptionStatusMapperTests
 {
+	#region Tests
 	[Fact]
 	public void Map_WhenValidationException_ShouldReturnInvalidArgumentWithTrailers()
 	{
@@ -48,11 +49,14 @@ public class DefaultGrpcExceptionStatusMapperTests
 		mapping.StatusCode.Should().Be(StatusCode.Internal);
 		mapping.Detail.Should().Be("An unexpected error occurred.");
 	}
+	#endregion
 
+	#region Helpers
 	private static DefaultGrpcExceptionStatusMapper CreateMapper(string? environmentName = null)
 	{
 		return new DefaultGrpcExceptionStatusMapper(
 			new TestHostEnvironment { EnvironmentName = environmentName ?? Environments.Development },
 			new DefaultGrpcValidationStatusMapper());
 	}
+	#endregion
 }

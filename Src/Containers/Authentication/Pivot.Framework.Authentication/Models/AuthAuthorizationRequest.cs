@@ -7,6 +7,7 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public sealed class AuthAuthorizationRequest
 {
+    #region Properties
     /// <summary>
     /// Optional explicit scope list. Falls back to provider defaults when omitted.
     /// </summary>
@@ -21,7 +22,6 @@ public sealed class AuthAuthorizationRequest
     /// Optional prompt override.
     /// </summary>
     public string? Prompt { get; set; }
-
 
     /// <summary>
     /// Optional login hint.
@@ -42,4 +42,5 @@ public sealed class AuthAuthorizationRequest
     /// Optional PKCE code challenge method. Defaults to S256.
     /// </summary>
     public string CodeChallengeMethod { get; set; } = "S256";
+    #endregion
 }

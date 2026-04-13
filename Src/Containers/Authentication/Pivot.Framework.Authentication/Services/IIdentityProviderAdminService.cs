@@ -9,6 +9,7 @@ namespace Pivot.Framework.Authentication.Services;
 /// </summary>
 public interface IIdentityProviderAdminService
 {
+	#region Methods
 	/// <summary>
 	/// Gets a user by provider identifier.
 	/// </summary>
@@ -43,4 +44,5 @@ public interface IIdentityProviderAdminService
     /// Lists provider users optionally filtered by a search term.
     /// </summary>
     Task<IReadOnlyCollection<IdentityProviderUser>> GetUsersAsync(string? search = null, CancellationToken ct = default);
+	#endregion
 }

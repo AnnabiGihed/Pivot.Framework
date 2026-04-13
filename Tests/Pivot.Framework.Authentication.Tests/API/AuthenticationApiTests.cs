@@ -15,6 +15,7 @@ namespace Pivot.Framework.Authentication.Tests.API;
 
 public class AuthenticationApiTests
 {
+	#region MapAuthenticationApi Tests
 	[Fact]
 	public void MapAuthenticationApi_ShouldRegisterExpectedRoutes()
 	{
@@ -37,7 +38,9 @@ public class AuthenticationApiTests
 		routes.Should().Contain("/auth/profile");
 		routes.Should().Contain("/auth/introspect");
 	}
+	#endregion
 
+	#region Handler Tests
 	[Fact]
 	public async Task CallbackAsync_ShouldPersistSessionWhenStoreIsAvailable()
 	{
@@ -85,7 +88,9 @@ public class AuthenticationApiTests
 		result.Should().NotBeNull();
 		await service.Received(1).IntrospectTokenAsync("token-1", Arg.Any<CancellationToken>());
 	}
+	#endregion
 
+	#region Helper Methods
 	private static string CreateJwt(string subjectId, string username)
 	{
 		var token = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
@@ -97,4 +102,5 @@ public class AuthenticationApiTests
 
 		return new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(token);
 	}
+	#endregion
 }

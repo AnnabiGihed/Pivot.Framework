@@ -8,6 +8,7 @@ namespace Pivot.Framework.Authentication.Tests.Extensions;
 
 public class AuthorizationPolicyExtensionsTests
 {
+	#region Policy Tests
 	[Fact]
 	public async Task AddRolePolicy_ShouldAuthorizeUserWithRole()
 	{
@@ -39,4 +40,5 @@ public class AuthorizationPolicyExtensionsTests
 
 		result.Succeeded.Should().BeTrue();
 	}
+	#endregion
 }

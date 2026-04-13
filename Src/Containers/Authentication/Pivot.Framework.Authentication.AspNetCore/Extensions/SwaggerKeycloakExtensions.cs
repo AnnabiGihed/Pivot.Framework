@@ -55,38 +55,51 @@ public static class SwaggerKeycloakExtensions
 		return options;
 	}
 
-	/// <summary>
-	/// Adds the Keycloak OAuth2 Authorization Code + PKCE security definition to Swagger.
-	/// Resolves <see cref="KeycloakOptions"/> from the already-built DI container.
-	/// </summary>
-	public static SwaggerGenOptions AddKeycloakSecurityDefinition(this SwaggerGenOptions options, IServiceProvider serviceProvider)
+    /// <summary>
+    /// Adds the Keycloak OAuth2 Authorization Code + PKCE security definition to Swagger.
+    /// Use this overload during <c>services.AddSwaggerGen(...)</c> — it reads options directly
+    /// from <paramref name="configuration"/> and avoids calling <c>BuildServiceProvider()</c>.
+    /// </summary>
+    public static SwaggerGenOptions AddKeycloakSecurityDefinition(this SwaggerGenOptions options, IConfiguration configuration)
+    {
+        var keycloak = configuration.GetSection(KeycloakOptions.SectionName).Get<KeycloakOptions>()
+            ?? throw new InvalidOperationException($"Missing configuration section '{KeycloakOptions.SectionName}'.");
+
+        return options.AddKeycloakSecurityDefinition(keycloak);
+    }
+
+    /// <summary>
+    /// Adds the Keycloak OAuth2 Authorization Code + PKCE security definition to Swagger.
+    /// Resolves <see cref="KeycloakOptions"/> from the already-built DI container.
+    /// </summary>
+    public static SwaggerGenOptions AddKeycloakSecurityDefinition(this SwaggerGenOptions options, IServiceProvider serviceProvider)
 	{
 		var keycloak = serviceProvider.GetRequiredService<IOptions<KeycloakOptions>>().Value;
 		return options.AddKeycloakSecurityDefinition(keycloak);
 	}
+    #endregion
 
-	/// <summary>
-	/// Adds the Keycloak OAuth2 Authorization Code + PKCE security definition to Swagger.
-	/// Use this overload during <c>services.AddSwaggerGen(...)</c> — it reads options directly
-	/// from <paramref name="configuration"/> and avoids calling <c>BuildServiceProvider()</c>.
-	/// </summary>
-	public static SwaggerGenOptions AddKeycloakSecurityDefinition(this SwaggerGenOptions options, IConfiguration configuration)
-	{
-		var keycloak = configuration.GetSection(KeycloakOptions.SectionName).Get<KeycloakOptions>()
-			?? throw new InvalidOperationException($"Missing configuration section '{KeycloakOptions.SectionName}'.");
+    #region Helpers
+    /// <summary>
+    /// Parses a space-separated scope string into a dictionary mapping each scope name to itself,
+    /// as required by the Swagger OpenAPI security scopes format.
+    /// </summary>
+    /// <param name="scopes">Space-separated OAuth2 scope names (e.g. "openid profile email").</param>
+    /// <returns>A dictionary of scope name to scope name.</returns>
+    private static Dictionary<string, string> ParseScopes(string scopes)
+    {
+        return scopes
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .ToDictionary(s => s, s => s);
+    }
 
-		return options.AddKeycloakSecurityDefinition(keycloak);
-	}
-	#endregion
-
-	#region Helpers
-	/// <summary>
-	/// Adds the Keycloak OAuth2 Authorization Code + PKCE security definition to Swagger using resolved <see cref="KeycloakOptions"/>.
-	/// </summary>
-	/// <param name="options">The Swagger generation options to configure.</param>
-	/// <param name="keycloak">The resolved Keycloak options containing endpoint URLs and client configuration.</param>
-	/// <returns>The updated <see cref="SwaggerGenOptions"/> instance for fluent chaining.</returns>
-	private static SwaggerGenOptions AddKeycloakSecurityDefinition(this SwaggerGenOptions options, KeycloakOptions keycloak)
+    /// <summary>
+    /// Adds the Keycloak OAuth2 Authorization Code + PKCE security definition to Swagger using resolved <see cref="KeycloakOptions"/>.
+    /// </summary>
+    /// <param name="options">The Swagger generation options to configure.</param>
+    /// <param name="keycloak">The resolved Keycloak options containing endpoint URLs and client configuration.</param>
+    /// <returns>The updated <see cref="SwaggerGenOptions"/> instance for fluent chaining.</returns>
+    private static SwaggerGenOptions AddKeycloakSecurityDefinition(this SwaggerGenOptions options, KeycloakOptions keycloak)
 	{
 		options.AddSecurityDefinition(SecuritySchemeName, new OpenApiSecurityScheme
 		{
@@ -104,19 +117,6 @@ public static class SwaggerKeycloakExtensions
 		});
 
 		return options;
-	}
-
-	/// <summary>
-	/// Parses a space-separated scope string into a dictionary mapping each scope name to itself,
-	/// as required by the Swagger OpenAPI security scopes format.
-	/// </summary>
-	/// <param name="scopes">Space-separated OAuth2 scope names (e.g. "openid profile email").</param>
-	/// <returns>A dictionary of scope name to scope name.</returns>
-	private static Dictionary<string, string> ParseScopes(string scopes)
-	{
-		return scopes
-			.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-			.ToDictionary(s => s, s => s);
 	}
 	#endregion
 }

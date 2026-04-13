@@ -9,6 +9,7 @@ namespace Pivot.Framework.Authentication.Services;
 /// </summary>
 public interface IIdentityProviderAuthService
 {
+	#region Methods
 	/// <summary>
 	/// Executes provider logout/revocation semantics.
 	/// </summary>
@@ -33,4 +34,5 @@ public interface IIdentityProviderAuthService
     /// Builds a provider authorization URL.
     /// </summary>
     Task<AuthAuthorizationResult> BuildAuthorizationUrlAsync(AuthAuthorizationRequest request, CancellationToken ct = default);
+	#endregion
 }

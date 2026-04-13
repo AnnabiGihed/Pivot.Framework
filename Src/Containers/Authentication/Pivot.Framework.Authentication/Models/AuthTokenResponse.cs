@@ -7,11 +7,12 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public sealed class AuthTokenResponse
 {
+    #region Properties
     /// <summary>
     /// Scope string returned by the provider.
     /// </summary>
     public string? Scope { get; set; }
-    
+
     /// <summary>
     /// ID token when issued by the provider.
     /// </summary>
@@ -41,4 +42,5 @@ public sealed class AuthTokenResponse
     /// Optional refresh token expiry timestamp.
     /// </summary>
     public DateTimeOffset? RefreshTokenExpiresAt { get; set; }
+    #endregion
 }

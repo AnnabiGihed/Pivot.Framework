@@ -9,6 +9,7 @@ namespace Pivot.Framework.Authentication.Tests.Services;
 
 public class KeycloakManagementServicesTests
 {
+	#region Test Infrastructure
 	private static readonly KeycloakOptions Settings = new()
 	{
 		BaseUrl = "https://auth.example.com",
@@ -19,7 +20,9 @@ public class KeycloakManagementServicesTests
 		AdminClientSecret = "admin-secret",
 		Audience = "pivot-api"
 	};
+	#endregion
 
+	#region Tests
 	[Fact]
 	public async Task IntrospectTokenAsync_ShouldMapKeycloakPayload()
 	{
@@ -110,4 +113,5 @@ public class KeycloakManagementServicesTests
 		result!.Id.Should().Be("user-1");
 		result.Email.Should().Be("gihed@example.com");
 	}
+	#endregion
 }

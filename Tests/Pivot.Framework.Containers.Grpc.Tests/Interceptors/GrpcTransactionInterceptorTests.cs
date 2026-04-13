@@ -11,6 +11,7 @@ namespace Pivot.Framework.Containers.Grpc.Tests.Interceptors;
 
 public class GrpcTransactionInterceptorTests
 {
+	#region Tests
 	[Fact]
 	public async Task UnaryServerHandler_WhenCallSucceeds_ShouldCommit()
 	{
@@ -95,4 +96,5 @@ public class GrpcTransactionInterceptorTests
 
 		await transactionManager.DidNotReceive().BeginTransactionAsync(Arg.Any<CancellationToken>());
 	}
+	#endregion
 }

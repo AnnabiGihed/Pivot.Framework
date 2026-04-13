@@ -7,8 +7,10 @@ namespace Pivot.Framework.Authentication.API.Contracts;
 /// </summary>
 public sealed class IntrospectTokenRequest
 {
+	#region Properties
 	/// <summary>
 	/// Token to introspect.
 	/// </summary>
 	public string Token { get; set; } = string.Empty;
+	#endregion
 }

@@ -10,6 +10,7 @@ namespace Pivot.Framework.Containers.Grpc.Tests.Interceptors;
 
 public class GrpcExceptionInterceptorTests
 {
+	#region Tests
 	[Fact]
 	public async Task UnaryServerHandler_WhenExceptionIsThrown_ShouldMapToRpcException()
 	{
@@ -27,4 +28,5 @@ public class GrpcExceptionInterceptorTests
 		var exception = await act.Should().ThrowAsync<RpcException>();
 		exception.Which.StatusCode.Should().Be(StatusCode.InvalidArgument);
 	}
+	#endregion
 }

@@ -7,25 +7,26 @@ namespace Pivot.Framework.Authentication.Models;
 /// </summary>
 public sealed class IdentityProviderUser
 {
-	/// <summary>
-	/// Username.
-	/// </summary>
-	public string? Username { get; set; }
+    #region Properties
+    /// <summary>
+    /// Email address.
+    /// </summary>
+    public string? Email { get; set; }
 
-	/// <summary>
-	/// Email address.
-	/// </summary>
-	public string? Email { get; set; }
+    /// <summary>
+    /// Username.
+    /// </summary>
+    public string? Username { get; set; }
 
-	/// <summary>
-	/// First/given name.
-	/// </summary>
-	public string? FirstName { get; set; }
+    /// <summary>
+    /// Last/family name.
+    /// </summary>
+    public string? LastName { get; set; }
 
-	/// <summary>
-	/// Last/family name.
-	/// </summary>
-	public string? LastName { get; set; }
+    /// <summary>
+    /// First/given name.
+    /// </summary>
+    public string? FirstName { get; set; }
 
 	/// <summary>
 	/// Display name when available.
@@ -41,7 +42,7 @@ public sealed class IdentityProviderUser
     /// Provider-specific user identifier.
     /// </summary>
     public string Id { get; set; } = string.Empty;
-    
+
 	/// <summary>
     /// Provider roles associated with the user.
     /// </summary>
@@ -51,4 +52,5 @@ public sealed class IdentityProviderUser
 	/// Claims associated with the user.
 	/// </summary>
 	public IReadOnlyCollection<IdentityProviderClaim> Claims { get; set; } = [];
+    #endregion
 }

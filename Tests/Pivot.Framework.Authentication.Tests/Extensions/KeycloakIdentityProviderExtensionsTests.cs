@@ -9,6 +9,7 @@ namespace Pivot.Framework.Authentication.Tests.Extensions;
 
 public class KeycloakIdentityProviderExtensionsTests
 {
+	#region Registration Tests
 	[Fact]
 	public void AddKeycloakIdentityProviderServices_ShouldRegisterBackendServices()
 	{
@@ -33,4 +34,5 @@ public class KeycloakIdentityProviderExtensionsTests
 		services.Should().Contain(descriptor => descriptor.ServiceType == typeof(ITokenRevocationService));
 		services.Should().Contain(descriptor => descriptor.ServiceType == typeof(IAuthSessionStore));
 	}
+	#endregion
 }

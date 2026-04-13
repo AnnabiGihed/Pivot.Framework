@@ -26,10 +26,13 @@ public sealed class KeycloakAuthStateProvider : Microsoft.AspNetCore.Components.
 	/// A reusable unauthenticated state returned when no user is logged in.
 	/// </summary>
 	private static readonly AuthenticationState Anonymous = new(new ClaimsPrincipal(new ClaimsIdentity()));
-	#endregion
+    #endregion
 
-	#region Dependencies
-	private readonly IKeycloakAuthService _auth;
+    #region Dependencies
+    /// <summary>
+    /// The Keycloak authentication service that provides the current user and authentication status.
+    /// </summary>
+    private readonly IKeycloakAuthService _auth;
 	#endregion
 
 	#region Constructor

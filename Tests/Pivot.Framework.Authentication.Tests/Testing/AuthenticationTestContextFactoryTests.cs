@@ -5,6 +5,7 @@ namespace Pivot.Framework.Authentication.Tests.Testing;
 
 public class AuthenticationTestContextFactoryTests
 {
+	#region Tests
 	[Fact]
 	public void CreatePrincipal_ShouldIncludeRolesAndClaims()
 	{
@@ -28,4 +29,5 @@ public class AuthenticationTestContextFactoryTests
 
 		context.User.Should().BeSameAs(principal);
 	}
+	#endregion
 }

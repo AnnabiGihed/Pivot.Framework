@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Pivot.Framework.Authentication.AspNetCore.Extensions;
@@ -10,6 +9,7 @@ namespace Pivot.Framework.Authentication.AspNetCore.Extensions;
 /// </summary>
 public static class AuthorizationPolicyExtensions
 {
+	#region Public Methods
 	/// <summary>
 	/// Adds a role-based authorization policy.
 	/// </summary>
@@ -62,4 +62,5 @@ public static class AuthorizationPolicyExtensions
 
 		return options;
 	}
+	#endregion
 }

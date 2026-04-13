@@ -1,20 +1,19 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using System.Text;
+using System.Net.Http.Json;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.JsonWebTokens;
-using Microsoft.IdentityModel.Protocols;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.IdentityModel.Tokens;
-using System.Net.Http.Json;
-using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using Pivot.Framework.Authentication.Blazor.Storage;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Components;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Pivot.Framework.Authentication.Events;
 using Pivot.Framework.Authentication.Helpers;
 using Pivot.Framework.Authentication.Responses;
+using Pivot.Framework.Authentication.Blazor.Storage;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace Pivot.Framework.Authentication.Blazor.Services;
 
@@ -39,41 +38,80 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 	internal const string SessionCookieName = "kc_session";
 	/// <summary>Number of random bytes used to generate the opaque session ID.</summary>
 	private const int SessionIdBytes = 32;
-	#endregion
+    #endregion
 
-	#region Dependencies
-	private readonly HttpClient _http;
-	private readonly NavigationManager _nav;
-	private readonly KeycloakOptions _options;
-	private readonly ILogger<KeycloakAuthService> _logger;
-	private readonly IBlazorTokenSessionStore _sessionStore;
-	private readonly IHttpContextAccessor _httpContextAccessor;
+    #region Public API
+    /// <inheritdoc />
+    public ClaimsPrincipal? User => _user;
+
+    /// <inheritdoc />
+    public event EventHandler<AuthStateChangedEventArgs>? AuthStateChanged;
+
+    /// <inheritdoc />
+    public bool IsAuthenticated => _session is not null && _session.HasTokens && !_session.IsExpired;
+    #endregion
+
+    #region Dependencies
+    /// <summary>
+    /// HTTP client used for server-to-Keycloak communication (token exchange, JWKS retrieval, revocation).
+    /// </summary>
+    private readonly HttpClient _http;
+
+    /// <summary>
+    /// Navigation manager for performing redirects to Keycloak and back to the app after login/logout.
+    /// </summary>
+    private readonly NavigationManager _nav;
+
+    /// <summary>
+    /// Keycloak configuration options loaded from appsettings (IssuerUrl, ClientId, etc.).
+    /// </summary>
+    private readonly KeycloakOptions _options;
+
+    /// <summary>
+    /// Logger for diagnostic output.
+    /// </summary>
+    private readonly ILogger<KeycloakAuthService> _logger;
+
+    /// <summary>
+    /// The session store abstraction for persisting PKCE flow state and tokens server-side in Redis.
+    /// </summary>
+    private readonly IBlazorTokenSessionStore _sessionStore;
+
+    /// <summary>
+    /// HTTP context accessor for reading and writing the session cookie on the current request/response.
+    /// </summary>
+    private readonly IHttpContextAccessor _httpContextAccessor;
 	#endregion
 
 	#region Circuit-scoped state (one instance per Blazor circuit)
-	/// <summary>The opaque session ID stored in the browser's HttpOnly cookie.</summary>
+	/// <summary>
+	/// The opaque session ID stored in the browser's HttpOnly cookie.
+	/// </summary>
 	private string? _sessionId;
-	/// <summary>The claims principal of the currently authenticated user.</summary>
+
+	/// <summary>
+	/// The claims principal of the currently authenticated user.
+	/// </summary>
 	private ClaimsPrincipal? _user;
-	/// <summary>The current Blazor token session holding the OAuth2 token set and flow state.</summary>
+
+	/// <summary>
+	/// The current Blazor token session holding the OAuth2 token set and flow state.
+	/// </summary>
 	private BlazorTokenSession? _session;
+
 	/// <summary>
 	/// Cached Keycloak OIDC configuration (signing keys).
 	/// </summary>
 	private OpenIdConnectConfiguration? _oidcConfig;
-	/// <summary>Lock for thread-safe lazy loading of the OIDC configuration.</summary>
+	/// <summary>
+	/// Lock for thread-safe lazy loading of the OIDC configuration.
+	/// </summary>
 	private readonly SemaphoreSlim _oidcLock = new(1, 1);
-	/// <summary>Lock for thread-safe token refresh operations.</summary>
-	private readonly SemaphoreSlim _refreshLock = new(1, 1);
-	#endregion
 
-	#region Public API
-	/// <inheritdoc />
-	public ClaimsPrincipal? User => _user;
-	/// <inheritdoc />
-	public event EventHandler<AuthStateChangedEventArgs>? AuthStateChanged;
-	/// <inheritdoc />
-	public bool IsAuthenticated => _session is not null && _session.HasTokens && !_session.IsExpired;
+	/// <summary>
+	/// Lock for thread-safe token refresh operations.
+	/// </summary>
+	private readonly SemaphoreSlim _refreshLock = new(1, 1);
 	#endregion
 
 	#region Constructor
@@ -96,11 +134,103 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 		_httpContextAccessor = httpContextAccessor;
 		_http = httpClientFactory.CreateClient(nameof(KeycloakAuthService));
 	}
-	#endregion
+    #endregion
 
-	#region Login — server-side PKCE, redirect to Keycloak
-	/// <inheritdoc />
-	public async Task<bool> LoginAsync(CancellationToken ct = default)
+    #region Callback — exchange code, validate, persist
+    /// <inheritdoc />
+    public async Task<string?> HandleCallbackAsync(string code, string returnedState, CancellationToken ct = default)
+    {
+        try
+        {
+            var lastDot = returnedState.LastIndexOf('.');
+            if (lastDot < 0)
+            {
+                _logger.LogWarning("Keycloak: malformed state — missing session ID segment.");
+                return null;
+            }
+
+            var oauthState = returnedState[..lastDot];
+            var sessionId = returnedState[(lastDot + 1)..];
+
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                _logger.LogWarning("Keycloak: session ID segment in state is empty.");
+                return null;
+            }
+
+            var flowSession = await _sessionStore.GetAsync(sessionId, ct);
+            if (flowSession is null)
+            {
+                _logger.LogWarning("Keycloak: callback session not found in Redis (expired or tampered).");
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(flowSession.OAuthState) || flowSession.OAuthState != oauthState)
+            {
+                _logger.LogWarning("Keycloak: OAuth2 state mismatch — possible CSRF attack.");
+                await _sessionStore.RemoveAsync(sessionId, ct);
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(flowSession.PkceVerifier) || string.IsNullOrEmpty(flowSession.Nonce))
+            {
+                _logger.LogWarning("Keycloak: PKCE verifier or nonce missing from session.");
+                await _sessionStore.RemoveAsync(sessionId, ct);
+                return null;
+            }
+
+            // Capture ReturnUrl before clearing flow state below
+            var returnUrl = flowSession.ReturnUrl ?? "/";
+
+            var tokenResponse = await ExchangeCodeAsync(code, flowSession.PkceVerifier, BuildCallbackUri(), ct);
+
+            if (tokenResponse.IdToken is not null)
+                await ValidateIdTokenNonceAsync(tokenResponse.IdToken, flowSession.Nonce, ct);
+
+            var principal = await ValidateAndParseAccessTokenAsync(tokenResponse.AccessToken, ct);
+
+            var refreshExpiresAt = tokenResponse.RefreshExpiresIn > 0 ? DateTimeOffset.UtcNow.AddSeconds(tokenResponse.RefreshExpiresIn) : (DateTimeOffset?)null;
+
+            flowSession.AccessToken = tokenResponse.AccessToken;
+            flowSession.RefreshToken = tokenResponse.RefreshToken;
+            flowSession.IdToken = tokenResponse.IdToken;
+            flowSession.ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(tokenResponse.ExpiresIn);
+            flowSession.RefreshTokenExpiresAt = refreshExpiresAt;
+            flowSession.PkceVerifier = null;
+            flowSession.OAuthState = null;
+            flowSession.Nonce = null;
+            flowSession.ReturnUrl = null;
+
+            await _sessionStore.SaveAsync(sessionId, flowSession, ct);
+
+            SetSessionCookie(sessionId, persistent: true);
+
+            _sessionId = sessionId;
+            _session = flowSession;
+            _user = principal;
+
+            NotifyAuthStateChanged(isAuthenticated: true);
+
+            _logger.LogInformation("Keycloak: user {Username} logged in via Blazor.", _user.FindFirst("preferred_username")?.Value);
+
+            return returnUrl;
+        }
+        catch (SecurityTokenValidationException ex)
+        {
+            _logger.LogError(ex, "Keycloak: token validation failed during callback.");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Keycloak: callback token exchange failed.");
+            return null;
+        }
+    }
+    #endregion
+
+    #region Login — server-side PKCE, redirect to Keycloak
+    /// <inheritdoc />
+    public async Task<bool> LoginAsync(CancellationToken ct = default)
 	{
 		try
 		{
@@ -138,98 +268,6 @@ public sealed class KeycloakAuthService : IBlazorKeycloakAuthService
 		{
 			_logger.LogError(ex, "Keycloak: failed to initiate login.");
 			return false;
-		}
-	}
-	#endregion
-
-	#region Callback — exchange code, validate, persist
-	/// <inheritdoc />
-	public async Task<string?> HandleCallbackAsync(string code, string returnedState, CancellationToken ct = default)
-	{
-		try
-		{
-			var lastDot = returnedState.LastIndexOf('.');
-			if (lastDot < 0)
-			{
-				_logger.LogWarning("Keycloak: malformed state — missing session ID segment.");
-				return null;
-			}
-
-			var oauthState = returnedState[..lastDot];
-			var sessionId = returnedState[(lastDot + 1)..];
-
-			if (string.IsNullOrEmpty(sessionId))
-			{
-				_logger.LogWarning("Keycloak: session ID segment in state is empty.");
-				return null;
-			}
-
-			var flowSession = await _sessionStore.GetAsync(sessionId, ct);
-			if (flowSession is null)
-			{
-				_logger.LogWarning("Keycloak: callback session not found in Redis (expired or tampered).");
-				return null;
-			}
-
-			if (string.IsNullOrEmpty(flowSession.OAuthState) || flowSession.OAuthState != oauthState)
-			{
-				_logger.LogWarning("Keycloak: OAuth2 state mismatch — possible CSRF attack.");
-				await _sessionStore.RemoveAsync(sessionId, ct);
-				return null;
-			}
-
-			if (string.IsNullOrEmpty(flowSession.PkceVerifier) || string.IsNullOrEmpty(flowSession.Nonce))
-			{
-				_logger.LogWarning("Keycloak: PKCE verifier or nonce missing from session.");
-				await _sessionStore.RemoveAsync(sessionId, ct);
-				return null;
-			}
-
-			// Capture ReturnUrl before clearing flow state below
-			var returnUrl = flowSession.ReturnUrl ?? "/";
-
-			var tokenResponse = await ExchangeCodeAsync(code, flowSession.PkceVerifier, BuildCallbackUri(), ct);
-
-			if (tokenResponse.IdToken is not null)
-				await ValidateIdTokenNonceAsync(tokenResponse.IdToken, flowSession.Nonce, ct);
-
-			var principal = await ValidateAndParseAccessTokenAsync(tokenResponse.AccessToken, ct);
-
-			var refreshExpiresAt = tokenResponse.RefreshExpiresIn > 0 ? DateTimeOffset.UtcNow.AddSeconds(tokenResponse.RefreshExpiresIn) : (DateTimeOffset?)null;
-
-			flowSession.AccessToken = tokenResponse.AccessToken;
-			flowSession.RefreshToken = tokenResponse.RefreshToken;
-			flowSession.IdToken = tokenResponse.IdToken;
-			flowSession.ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(tokenResponse.ExpiresIn);
-			flowSession.RefreshTokenExpiresAt = refreshExpiresAt;
-			flowSession.PkceVerifier = null;
-			flowSession.OAuthState = null;
-			flowSession.Nonce = null;
-			flowSession.ReturnUrl = null;
-
-			await _sessionStore.SaveAsync(sessionId, flowSession, ct);
-
-			SetSessionCookie(sessionId, persistent: true);
-
-			_sessionId = sessionId;
-			_session = flowSession;
-			_user = principal;
-
-			NotifyAuthStateChanged(isAuthenticated: true);
-
-			_logger.LogInformation("Keycloak: user {Username} logged in via Blazor.", _user.FindFirst("preferred_username")?.Value);
-
-			return returnUrl;
-		}
-		catch (SecurityTokenValidationException ex)
-		{
-			_logger.LogError(ex, "Keycloak: token validation failed during callback.");
-			return null;
-		}
-		catch (Exception ex)
-		{
-			_logger.LogError(ex, "Keycloak: callback token exchange failed.");
-			return null;
 		}
 	}
 	#endregion

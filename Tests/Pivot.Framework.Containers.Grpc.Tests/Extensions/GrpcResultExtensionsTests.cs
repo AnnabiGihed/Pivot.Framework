@@ -9,6 +9,7 @@ namespace Pivot.Framework.Containers.Grpc.Tests.Extensions;
 
 public class GrpcResultExtensionsTests
 {
+	#region Tests
 	[Fact]
 	public void ThrowIfFailure_WhenResultIsSuccessful_ShouldNotThrow()
 	{
@@ -44,4 +45,5 @@ public class GrpcResultExtensionsTests
 
 		value.Should().Be("pivot");
 	}
+	#endregion
 }

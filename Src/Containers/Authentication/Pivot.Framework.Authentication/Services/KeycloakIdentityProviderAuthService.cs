@@ -40,6 +40,48 @@ public sealed class KeycloakIdentityProviderAuthService : IIdentityProviderAuthS
 	}
     #endregion
 
+    #region Private Helpers
+    /// <summary>
+    /// Builds a FormUrlEncodedContent from a dictionary of key-value pairs, filtering out any entries with null or whitespace values.
+    /// </summary>
+    /// <param name="values"></param>
+    /// <returns></returns>
+    private static FormUrlEncodedContent BuildFormContent(IReadOnlyDictionary<string, string?> values)
+    {
+        return new FormUrlEncodedContent(values
+            .Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
+            .ToDictionary(pair => pair.Key, pair => pair.Value!));
+    }
+
+    /// <summary>
+    /// Parses the token response from Keycloak, extracting relevant fields and calculating expiration times based on the current time and the "expires_in" values returned by Keycloak.
+    /// </summary>
+    /// <param name="response"></param>
+    /// <param name="ct"></param>
+    /// <returns></returns>
+    private static async Task<AuthTokenResponse> ParseTokenResponseAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        var root = document.RootElement;
+
+        var expiresIn = root.TryGetProperty("expires_in", out var expiresInElement) ? expiresInElement.GetInt32() : 0;
+        var refreshExpiresIn = root.TryGetProperty("refresh_expires_in", out var refreshExpiresElement) ? refreshExpiresElement.GetInt32() : 0;
+        var now = DateTimeOffset.UtcNow;
+
+        return new AuthTokenResponse
+        {
+            AccessToken = root.GetStringOrNull("access_token") ?? string.Empty,
+            RefreshToken = root.GetStringOrNull("refresh_token"),
+            IdToken = root.GetStringOrNull("id_token"),
+            TokenType = root.GetStringOrNull("token_type") ?? "Bearer",
+            Scope = root.GetStringOrNull("scope"),
+            ExpiresAt = now.AddSeconds(expiresIn),
+            RefreshTokenExpiresAt = refreshExpiresIn > 0 ? now.AddSeconds(refreshExpiresIn) : null
+        };
+    }
+    #endregion
+
     #region IIdentityProviderAuthService Implementation
     /// <summary>
     /// Invalidates the user's session in Keycloak by sending a logout request to the configured logout endpoint with the provided refresh token and ID token hint.
@@ -191,48 +233,6 @@ public sealed class KeycloakIdentityProviderAuthService : IIdentityProviderAuthS
 		response.EnsureSuccessStatusCode();
 
 		return await ParseTokenResponseAsync(response, ct);
-	}
-    #endregion
-
-    #region Private Helpers
-    /// <summary>
-    /// Builds a FormUrlEncodedContent from a dictionary of key-value pairs, filtering out any entries with null or whitespace values.
-    /// </summary>
-    /// <param name="values"></param>
-    /// <returns></returns>
-    private static FormUrlEncodedContent BuildFormContent(IReadOnlyDictionary<string, string?> values)
-	{
-		return new FormUrlEncodedContent(values
-			.Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
-			.ToDictionary(pair => pair.Key, pair => pair.Value!));
-	}
-
-    /// <summary>
-    /// Parses the token response from Keycloak, extracting relevant fields and calculating expiration times based on the current time and the "expires_in" values returned by Keycloak.
-    /// </summary>
-    /// <param name="response"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
-    private static async Task<AuthTokenResponse> ParseTokenResponseAsync(HttpResponseMessage response, CancellationToken ct)
-	{
-		await using var stream = await response.Content.ReadAsStreamAsync(ct);
-		using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-		var root = document.RootElement;
-
-		var expiresIn = root.TryGetProperty("expires_in", out var expiresInElement) ? expiresInElement.GetInt32() : 0;
-		var refreshExpiresIn = root.TryGetProperty("refresh_expires_in", out var refreshExpiresElement) ? refreshExpiresElement.GetInt32() : 0;
-		var now = DateTimeOffset.UtcNow;
-
-		return new AuthTokenResponse
-		{
-			AccessToken = root.GetStringOrNull("access_token") ?? string.Empty,
-			RefreshToken = root.GetStringOrNull("refresh_token"),
-			IdToken = root.GetStringOrNull("id_token"),
-			TokenType = root.GetStringOrNull("token_type") ?? "Bearer",
-			Scope = root.GetStringOrNull("scope"),
-			ExpiresAt = now.AddSeconds(expiresIn),
-			RefreshTokenExpiresAt = refreshExpiresIn > 0 ? now.AddSeconds(refreshExpiresIn) : null
-		};
 	}
     #endregion
 }

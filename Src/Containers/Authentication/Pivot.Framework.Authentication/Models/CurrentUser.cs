@@ -32,6 +32,24 @@ public sealed class CurrentUser : ICurrentUser
     }
 
     /// <inheritdoc />
+    public string? Email
+    {
+        get
+        {
+            return User?.FindFirstValue(ClaimTypes.Email) ?? User?.FindFirstValue("email");
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Username
+    {
+        get
+        {
+            return User?.FindFirstValue("preferred_username") ?? User?.FindFirstValue(ClaimTypes.Name);
+        }
+    }
+
+    /// <inheritdoc />
     public string? DisplayName
     {
         get
@@ -51,6 +69,30 @@ public sealed class CurrentUser : ICurrentUser
     }
 
     /// <inheritdoc />
+    public bool IsAuthenticated
+    {
+        get
+        {
+            return User?.Identity?.IsAuthenticated == true;
+        }
+    }
+
+    /// <inheritdoc />
+    public ClaimsPrincipal? Principal
+    {
+        get
+        {
+            return User;
+        }
+    }
+
+    /// <inheritdoc />
+    public bool IsInRole(string role)
+    {
+        return User?.IsInRole(role) == true;
+    }
+
+    /// <inheritdoc />
     public IReadOnlyList<string> Roles
     {
         get
@@ -61,21 +103,6 @@ public sealed class CurrentUser : ICurrentUser
                 .ToList() ?? [];
         }
     }
-
-    /// <inheritdoc />
-    public ClaimsPrincipal? Principal => User;
-
-    /// <inheritdoc />
-    public bool IsInRole(string role) => User?.IsInRole(role) == true;
-
-    /// <inheritdoc />
-    public bool IsAuthenticated => User?.Identity?.IsAuthenticated == true;
-
-    /// <inheritdoc />
-    public string? Email => User?.FindFirstValue(ClaimTypes.Email) ?? User?.FindFirstValue("email");
-
-    /// <inheritdoc />
-    public string? Username => User?.FindFirstValue("preferred_username") ?? User?.FindFirstValue(ClaimTypes.Name);
     #endregion
 
     #region Private helpers

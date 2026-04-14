@@ -41,6 +41,140 @@ public sealed class KeycloakIdentityProviderAdminService : IIdentityProviderAdmi
 	}
     #endregion
 
+    #region Private Helper Methods
+    /// <summary>
+    /// Maps a JsonElement representing a Keycloak user to the provider-neutral IdentityProviderUser model. Extracts standard user properties such as username, email, first name, last name, and enabled status. Also processes the "attributes" property of the Keycloak user representation to extract custom claims and map them to IdentityProviderClaim instances. The method assumes that the input JsonElement is a valid Keycloak user representation and does not perform extensive validation on the presence of expected properties.
+    /// </summary>
+    /// <param name="element"></param>
+    /// <returns></returns>
+    private static IdentityProviderUser MapUser(JsonElement element)
+    {
+        var claims = new List<IdentityProviderClaim>();
+
+        if (element.TryGetProperty("attributes", out var attributes) && attributes.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var attribute in attributes.EnumerateObject())
+            {
+                if (attribute.Value.ValueKind != JsonValueKind.Array)
+                    continue;
+
+                foreach (var value in attribute.Value.EnumerateArray())
+                {
+                    if (value.ValueKind != JsonValueKind.String)
+                        continue;
+
+                    claims.Add(new IdentityProviderClaim
+                    {
+                        Type = attribute.Name,
+                        Value = value.GetString() ?? string.Empty
+                    });
+                }
+            }
+        }
+
+        return new IdentityProviderUser
+        {
+            Id = element.GetStringOrNull("id") ?? string.Empty,
+            Username = element.GetStringOrNull("username"),
+            Email = element.GetStringOrNull("email"),
+            FirstName = element.GetStringOrNull("firstName"),
+            LastName = element.GetStringOrNull("lastName"),
+            DisplayName = string.Join(' ', new[] { element.GetStringOrNull("firstName"), element.GetStringOrNull("lastName") }.Where(part => !string.IsNullOrWhiteSpace(part))),
+            IsEnabled = element.GetBooleanOrDefault("enabled", true),
+            Roles = [],
+            Claims = claims
+        };
+    }
+
+    /// <summary>
+    /// Obtains an access token for Keycloak admin API operations using the client credentials grant. The method constructs a form-urlencoded request with the necessary parameters (grant_type, client_id, client_secret) and sends it to the configured token endpoint. It then parses the response to extract the access token string. This token is used in the Authorization header of subsequent admin API requests. Throws exceptions if the client secret is not configured or if the token request fails for any reason (e.g., invalid credentials, network issues).
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    private async Task<string> GetAdminAccessTokenAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(_options.EffectiveAdminClientSecret))
+            throw new InvalidOperationException("Keycloak admin operations require a client secret. Configure Keycloak.AdminClientSecret or Keycloak.ClientSecret.");
+
+        var payload = new Dictionary<string, string>
+        {
+            ["grant_type"] = "client_credentials",
+            ["client_id"] = _options.EffectiveAdminClientId,
+            ["client_secret"] = _options.EffectiveAdminClientSecret!
+        };
+
+        using var response = await _httpClient.PostAsync(_options.TokenUrl, new FormUrlEncodedContent(payload), ct);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        return document.RootElement.GetStringOrNull("access_token")
+            ?? throw new InvalidOperationException("Keycloak admin token response did not contain an access_token.");
+    }
+
+    /// <summary>
+    /// Extracts the unique identifier of a newly created resource (e.g., user) from the Location header of a Keycloak API response. When a resource is successfully created via a POST request, Keycloak returns a 201 Created status code along with a Location header that contains the URL of the newly created resource. This method parses that URL to extract the last segment, which is typically the unique identifier of the resource (e.g., user ID). Throws an exception if the Location header is missing or does not contain a valid URL.
+    /// </summary>
+    /// <param name="response">The HTTP response message from the Keycloak API.</param>
+    /// <returns>The unique identifier of the newly created resource.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the Location header is missing or invalid.</exception>
+    private static string ExtractCreatedResourceId(HttpResponseMessage response)
+    {
+        var location = response.Headers.Location?.ToString();
+        if (string.IsNullOrWhiteSpace(location))
+            throw new InvalidOperationException("Keycloak create-user response did not include a Location header.");
+
+        return location.TrimEnd('/').Split('/').Last();
+    }
+
+    /// <summary>
+    /// Creates an HttpRequestMessage for Keycloak admin API calls, including the necessary Authorization header with a bearer token. The method first obtains an access token using the client credentials grant and then constructs an HttpRequestMessage with the specified HTTP method and URL. The access token is included in the Authorization header as a Bearer token. This helper method centralizes the logic for authenticating admin API requests and ensures that all such requests include valid credentials. Throws exceptions if obtaining the access token fails.
+    /// </summary>
+    /// <param name="method"></param>
+    /// <param name="url"></param>
+    /// <param name="ct"></param>
+    /// <returns></returns>
+    private async Task<HttpRequestMessage> CreateAdminRequestAsync(HttpMethod method, string url, CancellationToken ct)
+    {
+        var accessToken = await GetAdminAccessTokenAsync(ct);
+        var request = new HttpRequestMessage(method, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        return request;
+    }
+
+    /// <summary>
+    /// Retrieves the full role representations for a given list of role names. Keycloak's API for assigning roles to users requires the full role representation (including ID, name, and description) rather than just the role name. This method iterates over the provided role names, makes individual API calls to retrieve each role's details, and constructs a list of anonymous objects containing the required properties (id, name, description) for each role. Throws exceptions if any of the specified roles do not exist or if any API errors occur during the retrieval process.
+    /// </summary>
+    /// <param name="roles">The list of role names to retrieve representations for.</param>
+    /// <param name="ct">The cancellation token.</param>
+    /// <returns>A read-only collection of role representations.</returns>
+	private async Task<IReadOnlyCollection<object>> GetRoleRepresentationsAsync(IReadOnlyCollection<string> roles, CancellationToken ct)
+    {
+        var representations = new List<object>(roles.Count);
+
+        foreach (var role in roles)
+        {
+            using var request = await CreateAdminRequestAsync(HttpMethod.Get, $"{_options.AdminBaseUrl}/roles/{Uri.EscapeDataString(role)}", ct);
+            using var response = await _httpClient.SendAsync(request, ct);
+            response.EnsureSuccessStatusCode();
+
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+            var root = document.RootElement;
+
+            representations.Add(new
+            {
+                id = root.GetStringOrNull("id"),
+                name = root.GetStringOrNull("name"),
+                description = root.GetStringOrNull("description")
+            });
+        }
+
+        return representations;
+    }
+    #endregion
+
     #region IIdentityProviderAdminService Implementation
     /// <summary>
     /// Retrieves a user by their unique identifier. Returns null if no user with the specified ID exists. Maps Keycloak's user representation to the provider-neutral IdentityProviderUser model.
@@ -213,139 +347,5 @@ public sealed class KeycloakIdentityProviderAdminService : IIdentityProviderAdmi
             .Select(MapUser)
             .ToArray();
     }
-    #endregion
-
-    #region Private Helper Methods
-    /// <summary>
-    /// Maps a JsonElement representing a Keycloak user to the provider-neutral IdentityProviderUser model. Extracts standard user properties such as username, email, first name, last name, and enabled status. Also processes the "attributes" property of the Keycloak user representation to extract custom claims and map them to IdentityProviderClaim instances. The method assumes that the input JsonElement is a valid Keycloak user representation and does not perform extensive validation on the presence of expected properties.
-    /// </summary>
-    /// <param name="element"></param>
-    /// <returns></returns>
-    private static IdentityProviderUser MapUser(JsonElement element)
-    {
-        var claims = new List<IdentityProviderClaim>();
-
-        if (element.TryGetProperty("attributes", out var attributes) && attributes.ValueKind == JsonValueKind.Object)
-        {
-            foreach (var attribute in attributes.EnumerateObject())
-            {
-                if (attribute.Value.ValueKind != JsonValueKind.Array)
-                    continue;
-
-                foreach (var value in attribute.Value.EnumerateArray())
-                {
-                    if (value.ValueKind != JsonValueKind.String)
-                        continue;
-
-                    claims.Add(new IdentityProviderClaim
-                    {
-                        Type = attribute.Name,
-                        Value = value.GetString() ?? string.Empty
-                    });
-                }
-            }
-        }
-
-        return new IdentityProviderUser
-        {
-            Id = element.GetStringOrNull("id") ?? string.Empty,
-            Username = element.GetStringOrNull("username"),
-            Email = element.GetStringOrNull("email"),
-            FirstName = element.GetStringOrNull("firstName"),
-            LastName = element.GetStringOrNull("lastName"),
-            DisplayName = string.Join(' ', new[] { element.GetStringOrNull("firstName"), element.GetStringOrNull("lastName") }.Where(part => !string.IsNullOrWhiteSpace(part))),
-            IsEnabled = element.GetBooleanOrDefault("enabled", true),
-            Roles = [],
-            Claims = claims
-        };
-    }
-
-    /// <summary>
-    /// Obtains an access token for Keycloak admin API operations using the client credentials grant. The method constructs a form-urlencoded request with the necessary parameters (grant_type, client_id, client_secret) and sends it to the configured token endpoint. It then parses the response to extract the access token string. This token is used in the Authorization header of subsequent admin API requests. Throws exceptions if the client secret is not configured or if the token request fails for any reason (e.g., invalid credentials, network issues).
-    /// </summary>
-    /// <param name="ct"></param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
-    private async Task<string> GetAdminAccessTokenAsync(CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(_options.EffectiveAdminClientSecret))
-            throw new InvalidOperationException("Keycloak admin operations require a client secret. Configure Keycloak.AdminClientSecret or Keycloak.ClientSecret.");
-
-        var payload = new Dictionary<string, string>
-        {
-            ["grant_type"] = "client_credentials",
-            ["client_id"] = _options.EffectiveAdminClientId,
-            ["client_secret"] = _options.EffectiveAdminClientSecret!
-        };
-
-        using var response = await _httpClient.PostAsync(_options.TokenUrl, new FormUrlEncodedContent(payload), ct);
-        response.EnsureSuccessStatusCode();
-
-        await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-        return document.RootElement.GetStringOrNull("access_token")
-            ?? throw new InvalidOperationException("Keycloak admin token response did not contain an access_token.");
-    }
-
-    /// <summary>
-    /// Extracts the unique identifier of a newly created resource (e.g., user) from the Location header of a Keycloak API response. When a resource is successfully created via a POST request, Keycloak returns a 201 Created status code along with a Location header that contains the URL of the newly created resource. This method parses that URL to extract the last segment, which is typically the unique identifier of the resource (e.g., user ID). Throws an exception if the Location header is missing or does not contain a valid URL.
-    /// </summary>
-    /// <param name="response">The HTTP response message from the Keycloak API.</param>
-    /// <returns>The unique identifier of the newly created resource.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if the Location header is missing or invalid.</exception>
-    private static string ExtractCreatedResourceId(HttpResponseMessage response)
-    {
-        var location = response.Headers.Location?.ToString();
-        if (string.IsNullOrWhiteSpace(location))
-            throw new InvalidOperationException("Keycloak create-user response did not include a Location header.");
-
-        return location.TrimEnd('/').Split('/').Last();
-    }
-
-    /// <summary>
-    /// Creates an HttpRequestMessage for Keycloak admin API calls, including the necessary Authorization header with a bearer token. The method first obtains an access token using the client credentials grant and then constructs an HttpRequestMessage with the specified HTTP method and URL. The access token is included in the Authorization header as a Bearer token. This helper method centralizes the logic for authenticating admin API requests and ensures that all such requests include valid credentials. Throws exceptions if obtaining the access token fails.
-    /// </summary>
-    /// <param name="method"></param>
-    /// <param name="url"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
-    private async Task<HttpRequestMessage> CreateAdminRequestAsync(HttpMethod method, string url, CancellationToken ct)
-	{
-		var accessToken = await GetAdminAccessTokenAsync(ct);
-		var request = new HttpRequestMessage(method, url);
-		request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-		return request;
-	}
-
-    /// <summary>
-    /// Retrieves the full role representations for a given list of role names. Keycloak's API for assigning roles to users requires the full role representation (including ID, name, and description) rather than just the role name. This method iterates over the provided role names, makes individual API calls to retrieve each role's details, and constructs a list of anonymous objects containing the required properties (id, name, description) for each role. Throws exceptions if any of the specified roles do not exist or if any API errors occur during the retrieval process.
-    /// </summary>
-    /// <param name="roles">The list of role names to retrieve representations for.</param>
-    /// <param name="ct">The cancellation token.</param>
-    /// <returns>A read-only collection of role representations.</returns>
-	private async Task<IReadOnlyCollection<object>> GetRoleRepresentationsAsync(IReadOnlyCollection<string> roles, CancellationToken ct)
-	{
-		var representations = new List<object>(roles.Count);
-
-		foreach (var role in roles)
-		{
-			using var request = await CreateAdminRequestAsync(HttpMethod.Get, $"{_options.AdminBaseUrl}/roles/{Uri.EscapeDataString(role)}", ct);
-			using var response = await _httpClient.SendAsync(request, ct);
-			response.EnsureSuccessStatusCode();
-
-			await using var stream = await response.Content.ReadAsStreamAsync(ct);
-			using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-			var root = document.RootElement;
-
-			representations.Add(new
-			{
-				id = root.GetStringOrNull("id"),
-				name = root.GetStringOrNull("name"),
-				description = root.GetStringOrNull("description")
-			});
-		}
-
-		return representations;
-	}
     #endregion
 }
